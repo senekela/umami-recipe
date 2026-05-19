@@ -138,13 +138,14 @@ def internal_error(error):
 
 
 if __name__ == '__main__':
-    port = 5001
+    import os
+    port = int(os.environ.get('PORT', 5001))
     logger.info(f"Starting Recipe Scraper API on port {port}")
     logger.info("Available endpoints:")
     logger.info("  GET  /health - Health check")
     logger.info("  GET  /supported-sites - List supported recipe sites")
     logger.info("  POST /scrape - Scrape a recipe from URL")
     
-    app.run(host='0.0.0.0', port=port, debug=True)
+    app.run(host='0.0.0.0', port=port, debug=False)
 
 # Made with Bob

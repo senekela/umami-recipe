@@ -59,17 +59,17 @@ Fill in the following settings:
 - **Name:** `recipe-scraper` (or your preferred name)
 - **Region:** Choose closest to you (e.g., Oregon, Frankfurt)
 - **Branch:** `main` (or your default branch)
-- **Root Directory:** `python-scraper`
+- **Root Directory:** Leave empty (we'll use cd in commands)
 
 ### Build Settings
 - **Runtime:** `Python 3`
-- **Build Command:** 
+- **Build Command:**
   ```
-  pip install -r requirements.txt
+  cd python-scraper && pip install -r requirements.txt
   ```
 - **Start Command:**
   ```
-  gunicorn -w 4 -b 0.0.0.0:$PORT app:app
+  cd python-scraper && gunicorn -w 4 -b 0.0.0.0:$PORT app:app
   ```
 
 ### Instance Settings
@@ -284,8 +284,13 @@ services:
     runtime: python
     region: oregon
     plan: free
-    buildCommand: pip install -r requirements.txt
-    startCommand: gunicorn -w 4 -b 0.0.0.0:$PORT app:app
+    buildCommand: cd python-scraper && pip install -r requirements.txt
+    startCommand: cd python-scraper && gunicorn -w 4 -b 0.0.0.0:$PORT app:app
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.0
+      - key: FLASK_ENV
+        value: production
 ```
 
 ### "Port binding error"
