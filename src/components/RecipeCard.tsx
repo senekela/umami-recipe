@@ -1,10 +1,25 @@
 import { Link } from 'react-router-dom'
+import { Avatar, AvatarFallback } from '../app/components/ui/avatar'
 import type { Recipe } from '../lib/types/recipe'
 
+function getPublisherInitials(name: string | null | undefined) {
+  if (!name) return 'U'
+
+  const words = name.trim().split(/\s+/).filter(Boolean)
+  if (words.length === 0) return 'U'
+
+  return words
+    .slice(0, 2)
+    .map(word => word[0]?.toUpperCase() ?? '')
+    .join('')
+}
+
 export function RecipeCard({ recipe }: { recipe: Recipe }) {
+  const publisherName = recipe.publisher?.display_name?.trim() || 'Umami cook'
+
   return (
     <Link to={`/recipes/${recipe.slug}`} className="block group">
-      <div className="bg-white rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-shadow">
+      <div className="bg-white rounded-2xl overflow-hidden border border-stone-200/80 shadow-sm hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300">
         {recipe.image_url ? (
           <div className="aspect-video bg-gray-100">
             <img
@@ -21,8 +36,27 @@ export function RecipeCard({ recipe }: { recipe: Recipe }) {
             </svg>
           </div>
         )}
-        <div className="p-4">
-          <h3 className="font-serif text-xl text-[#1A1A18] mb-2 line-clamp-2">{recipe.title}</h3>
+        <div className="p-4 space-y-4">
+          <div className="flex items-center justify-between gap-3">
+            <div className="min-w-0">
+              <h3 className="font-serif text-xl text-[#1A1A18] mb-2 line-clamp-2">{recipe.title}</h3>
+            </div>
+
+            <div className="shrink-0">
+              <div className="inline-flex items-center gap-2 rounded-full border border-[#C0622F]/15 bg-gradient-to-r from-[#FFF8F3] to-white px-2.5 py-1.5 shadow-sm">
+                <Avatar className="h-8 w-8 ring-2 ring-white shadow-sm">
+                  <AvatarFallback className="bg-[#C0622F] text-white text-xs font-semibold">
+                    {getPublisherInitials(publisherName)}
+                  </AvatarFallback>
+                </Avatar>
+                <div className="hidden sm:block">
+                  <p className="text-[10px] uppercase tracking-[0.18em] text-[#C0622F]/70">Publisher</p>
+                  <p className="max-w-[110px] truncate text-xs font-medium text-[#1A1A18]">{publisherName}</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
           {recipe.tags.length > 0 && (
             <div className="flex flex-wrap gap-2">
               {recipe.tags.slice(0, 3).map(tag => (

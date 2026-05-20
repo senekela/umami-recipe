@@ -10,6 +10,10 @@ export type Step = {
   text: string
 }
 
+export type RecipePublisher = {
+  display_name: string | null
+}
+
 export type Recipe = {
   id: string
   slug: string
@@ -22,6 +26,7 @@ export type Recipe = {
   tags: string[]
   status: 'draft' | 'published'
   owner_id: string
+  publisher?: RecipePublisher | null
   share_token: string | null
   share_enabled: boolean
   import_method: 'manual' | 'url' | 'ocr' | 'fork'

@@ -17,7 +17,10 @@ export function useRecipes(filters?: { search?: string; tags?: string[] }) {
       setLoading(true)
       let query = supabase
         .from('recipes')
-        .select('*')
+        .select(`
+          *,
+          publisher:profiles!recipes_owner_id_fkey(display_name)
+        `)
         .eq('status', 'published')
         .order('published_at', { ascending: false })
 
