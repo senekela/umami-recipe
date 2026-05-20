@@ -54,7 +54,7 @@ export function useAuth() {
     return supabase.auth.signInWithOtp({
       email,
       options: {
-        emailRedirectTo: 'https://umami-recipe-4blp34o2v-mayortone-gmailcoms-projects.vercel.app/'
+        emailRedirectTo: 'https://umami-recipe-hf644i4ho-mayortone-gmailcoms-projects.vercel.app/'
       }
     })
   }
