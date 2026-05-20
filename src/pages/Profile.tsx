@@ -56,12 +56,19 @@ export function Profile() {
     setSuccess(null)
 
     try {
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from('profiles')
         .update({ nickname: nickname.trim() || null })
         .eq('id', user.id)
+        .select()
+        .single()
 
       if (error) throw error
+      
+      // Update local state immediately
+      if (data) {
+        setProfile(data)
+      }
 
       setSuccess('Nickname updated successfully')
       await loadProfile()
