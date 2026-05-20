@@ -95,13 +95,10 @@ export function Profile() {
 
     try {
       // Delete old avatar if exists
-      if (profile?.avatar_url) {
-        const oldPath = profile.avatar_url.split('/').pop()
-        if (oldPath) {
-          await supabase.storage
-            .from('avatars')
-            .remove([`${user.id}/${oldPath}`])
-        }
+      if (profile?.avatar_path) {
+        await supabase.storage
+          .from('avatars')
+          .remove([profile.avatar_path])
       }
 
       // Upload new avatar
@@ -123,7 +120,10 @@ export function Profile() {
       // Update profile with new avatar URL
       const { error: updateError } = await supabase
         .from('profiles')
-        .update({ avatar_url: publicUrl })
+        .update({
+          avatar_url: publicUrl,
+          avatar_path: filePath,
+        })
         .eq('id', user.id)
 
       if (updateError) throw updateError
