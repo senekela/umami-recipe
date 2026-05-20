@@ -7,6 +7,7 @@ import { Home } from '../pages/Home'
 import { Search } from '../pages/Search'
 import { RecipeDetail } from '../pages/RecipeDetail'
 import { Login } from '../pages/Login'
+import { AdminSignup } from '../pages/AdminSignup'
 import { Import } from '../pages/Import'
 import { DraftEditor } from '../pages/DraftEditor'
 import { MyRecipes } from '../pages/MyRecipes'
@@ -47,6 +48,7 @@ export default function App() {
         <Route path="/" element={<Home />} />
         <Route path="/search" element={<Search />} />
         <Route path="/login" element={<Login />} />
+        <Route path="/admin/signup" element={<AdminSignup />} />
         <Route path="/auth/callback" element={<AuthCallback />} />
         <Route path="/recipes/:slug" element={<RecipeDetail />} />
         <Route path="/share/:token" element={<ShareView />} />

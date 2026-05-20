@@ -4,10 +4,12 @@ import { useAuth } from '../hooks/useAuth'
 
 export function Login() {
   const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [isAdminMode, setIsAdminMode] = useState(false)
   const [sent, setSent] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const { sendMagicLink } = useAuth()
+  const { sendMagicLink, signInWithPassword } = useAuth()
   const [searchParams] = useSearchParams()
   const navigate = useNavigate()
 
@@ -16,14 +18,28 @@ export function Login() {
     setLoading(true)
     setError(null)
 
-    const { error } = await sendMagicLink(email)
-
-    if (error) {
-      setError(error.message)
-      setLoading(false)
+    if (isAdminMode) {
+      // Admin login with password
+      const { error } = await signInWithPassword(email, password)
+      
+      if (error) {
+        setError(error.message)
+        setLoading(false)
+      } else {
+        // Redirect to the next page or default to /me
+        navigate(searchParams.get('next') || '/me')
+      }
     } else {
-      setSent(true)
-      setLoading(false)
+      // Regular user login with magic link
+      const { error } = await sendMagicLink(email)
+
+      if (error) {
+        setError(error.message)
+        setLoading(false)
+      } else {
+        setSent(true)
+        setLoading(false)
+      }
     }
   }
 
@@ -55,7 +71,9 @@ export function Login() {
     <div className="min-h-screen bg-[#FAFAF7] flex items-center justify-center p-4">
       <div className="bg-white rounded-2xl shadow-lg p-8 max-w-md w-full">
         <h1 className="font-serif text-3xl text-[#1A1A18] text-center mb-2">Umami</h1>
-        <p className="text-center text-[#1A1A18]/60 mb-8">Sign in to save and share recipes</p>
+        <p className="text-center text-[#1A1A18]/60 mb-8">
+          {isAdminMode ? 'Admin sign in' : 'Sign in to save and share recipes'}
+        </p>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
@@ -73,6 +91,23 @@ export function Login() {
             />
           </div>
 
+          {isAdminMode && (
+            <div>
+              <label htmlFor="password" className="block text-sm font-medium text-[#1A1A18] mb-2">
+                Password
+              </label>
+              <input
+                id="password"
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+                placeholder="••••••••"
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#C0622F] focus:border-transparent"
+              />
+            </div>
+          )}
+
           {error && (
             <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
               {error}
@@ -84,8 +119,22 @@ export function Login() {
             disabled={loading}
             className="w-full bg-[#C0622F] text-white py-3 rounded-lg font-medium hover:bg-[#A0522D] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {loading ? 'Sending...' : 'Send me a link'}
+            {loading ? (isAdminMode ? 'Signing in...' : 'Sending...') : (isAdminMode ? 'Sign in' : 'Send me a link')}
           </button>
+
+          <div className="text-center pt-4 border-t border-gray-200">
+            <button
+              type="button"
+              onClick={() => {
+                setIsAdminMode(!isAdminMode)
+                setError(null)
+                setPassword('')
+              }}
+              className="text-sm text-[#C0622F] hover:underline"
+            >
+              {isAdminMode ? 'Sign in with magic link instead' : 'Admin? Sign in with password'}
+            </button>
+          </div>
         </form>
       </div>
     </div>

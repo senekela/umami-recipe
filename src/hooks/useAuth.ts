@@ -59,6 +59,20 @@ export function useAuth() {
     })
   }
 
+  const signInWithPassword = async (email: string, password: string) => {
+    return supabase.auth.signInWithPassword({
+      email,
+      password
+    })
+  }
+
+  const signUpWithPassword = async (email: string, password: string) => {
+    return supabase.auth.signUp({
+      email,
+      password
+    })
+  }
+
   const logout = () => supabase.auth.signOut()
 
   return {
@@ -67,6 +81,8 @@ export function useAuth() {
     profile,
     loading,
     sendMagicLink,
+    signInWithPassword,
+    signUpWithPassword,
     logout,
     refreshProfile: () => session?.user && loadProfile(session.user.id)
   }
