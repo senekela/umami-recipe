@@ -5,13 +5,11 @@ import type { Recipe } from '../lib/types/recipe'
 function getPublisherInitials(name: string | null | undefined) {
   if (!name) return 'U'
 
-  const words = name.trim().split(/\s+/).filter(Boolean)
-  if (words.length === 0) return 'U'
+  const trimmed = name.trim()
+  if (trimmed.length === 0) return 'U'
 
-  return words
-    .slice(0, 2)
-    .map(word => word[0]?.toUpperCase() ?? '')
-    .join('')
+  // Return first 2 letters of the nickname (or 1 if nickname is only 1 character)
+  return trimmed.slice(0, 2).toUpperCase()
 }
 
 export function RecipeCard({ recipe }: { recipe: Recipe }) {

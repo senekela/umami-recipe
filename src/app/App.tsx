@@ -10,6 +10,7 @@ import { Login } from '../pages/Login'
 import { Import } from '../pages/Import'
 import { DraftEditor } from '../pages/DraftEditor'
 import { MyRecipes } from '../pages/MyRecipes'
+import { Profile } from '../pages/Profile'
 import { ShareView } from '../pages/ShareView'
 import { supabase } from '../lib/supabase'
 
@@ -70,6 +71,14 @@ export default function App() {
           element={
             <AuthGuard>
               <MyRecipes />
+            </AuthGuard>
+          }
+        />
+        <Route
+          path="/profile"
+          element={
+            <AuthGuard>
+              <Profile />
             </AuthGuard>
           }
         />
