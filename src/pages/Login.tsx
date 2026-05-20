@@ -122,7 +122,7 @@ export function Login() {
             {loading ? (isAdminMode ? 'Signing in...' : 'Sending...') : (isAdminMode ? 'Sign in' : 'Send me a link')}
           </button>
 
-          <div className="text-center pt-4 border-t border-gray-200">
+          <div className="text-center pt-4 border-t border-gray-200 space-y-2">
             <button
               type="button"
               onClick={() => {
@@ -130,10 +130,19 @@ export function Login() {
                 setError(null)
                 setPassword('')
               }}
-              className="text-sm text-[#C0622F] hover:underline"
+              className="text-sm text-[#C0622F] hover:underline block w-full"
             >
               {isAdminMode ? 'Sign in with magic link instead' : 'Admin? Sign in with password'}
             </button>
+            {isAdminMode && (
+              <button
+                type="button"
+                onClick={() => navigate('/admin/signup')}
+                className="text-sm text-[#1A1A18]/60 hover:text-[#C0622F] hover:underline block w-full"
+              >
+                Need to create an admin account?
+              </button>
+            )}
           </div>
         </form>
       </div>
