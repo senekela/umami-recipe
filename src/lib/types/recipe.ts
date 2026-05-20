@@ -10,6 +10,23 @@ export type Step = {
   text: string
 }
 
+export type ImportFlagField =
+  | 'title'
+  | 'description'
+  | 'ingredients'
+  | 'steps'
+  | 'image'
+  | 'source'
+  | 'general'
+
+export type ImportFlagSeverity = 'info' | 'warning' | 'error'
+
+export type ImportFlag = {
+  field: ImportFlagField
+  severity: ImportFlagSeverity
+  message: string
+}
+
 export type RecipePublisher = {
   display_name: string | null
 }
@@ -31,6 +48,12 @@ export type Recipe = {
   share_enabled: boolean
   import_method: 'manual' | 'url' | 'ocr' | 'fork'
   import_source: string | null
+  raw_text?: string | null
+  import_confidence?: number | null
+  import_errors?: string[]
+  import_warnings?: string[]
+  import_flags?: ImportFlag[]
+  import_reviewed_at?: string | null
   published_at: string | null
   created_at: string
   updated_at: string
@@ -47,6 +70,8 @@ export type DraftSchema = {
   confidence: number
   raw_text: string | null
   errors: string[]
+  warnings?: string[]
+  flags?: ImportFlag[]
 }
 
 export type Profile = {

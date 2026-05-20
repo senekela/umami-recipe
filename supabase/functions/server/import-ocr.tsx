@@ -1,6 +1,33 @@
 import { createClient } from 'npm:@supabase/supabase-js@2';
 import Tesseract from 'npm:tesseract.js';
 
+type ImportFlag = {
+  field: 'title' | 'description' | 'ingredients' | 'steps' | 'image' | 'source' | 'general';
+  severity: 'info' | 'warning' | 'error';
+  message: string;
+};
+
+type OcrDraft = {
+  title: string | null;
+  description: string | null;
+  image_url: string | null;
+  source_url: string | null;
+  ingredients: Array<{ amount: string; unit: string; name: string }>;
+  steps: Array<{ order: number; text: string }>;
+  tags: string[];
+  confidence: number;
+  raw_text: string | null;
+  errors: string[];
+  warnings: string[];
+  flags: ImportFlag[];
+};
+
+const INGREDIENT_HEADER_PATTERN = /\bingredients?\b/i;
+const STEP_HEADER_PATTERN = /\b(directions?|instructions?|method|steps?)\b/i;
+const INGREDIENT_LINE_PATTERN = /^([\d¼½¾⅓⅔⅛⅜⅝⅞\/\.\s]+)?\s*([a-zA-Z]+)?\s+(.+)$/;
+const NUMBERED_STEP_PATTERN = /^(\d+)[\.\):]\s*(.+)$/;
+const UNIT_HINT_PATTERN = /\b(cup|cups|tbsp|tablespoon|tablespoons|tsp|teaspoon|teaspoons|oz|ounce|ounces|lb|lbs|pound|pounds|g|gram|grams|kg|ml|l|pinch|clove|cloves)\b/i;
+
 export async function handleOcrImport(storagePath: string, supabaseUrl: string, serviceRoleKey: string) {
   try {
     const supabase = createClient(supabaseUrl, serviceRoleKey);
@@ -19,92 +46,93 @@ export async function handleOcrImport(storagePath: string, supabaseUrl: string, 
     const arrayBuffer = await fileData.arrayBuffer();
     const buffer = new Uint8Array(arrayBuffer);
 
-    const { data: { text } } = await Tesseract.recognize(buffer, 'eng');
+    const { data } = await Tesseract.recognize(buffer, 'eng', {
+      logger: () => undefined,
+    });
 
-    if (!text || text.trim().length < 10) {
+    const text = data?.text?.trim() || '';
+    const meanConfidence = Number.isFinite(data?.confidence) ? data.confidence : 0;
+
+    if (text.length < 20) {
       return {
         error: 'Try a clearer, higher-contrast photo of the recipe page',
         partial: null
       };
     }
 
-    const lines = text.split('\n').filter(line => line.trim().length > 0);
+    const lines = text
+      .split('\n')
+      .map((line: string) => line.replace(/\s+/g, ' ').trim())
+      .filter((line: string) => line.length > 0);
 
-    let result: any = {
-      title: null,
+    const flags: ImportFlag[] = [];
+    const warnings: string[] = [];
+    const errors: string[] = [];
+
+    const result: OcrDraft = {
+      title: findTitle(lines),
       description: null,
       image_url: null,
       source_url: null,
-      ingredients: [],
-      steps: [],
+      ingredients: extractIngredients(lines),
+      steps: extractSteps(lines),
       tags: [],
       confidence: 0,
       raw_text: text,
-      errors: []
+      errors,
+      warnings,
+      flags,
     };
 
-    const titleMatch = lines[0];
-    if (titleMatch) {
-      result.title = titleMatch.trim();
+    const heuristicConfidence = scoreHeuristics(lines, result.ingredients.length, result.steps.length, result.title);
+    result.confidence = Math.max(0, Math.min(0.99, ((meanConfidence / 100) * 0.65) + (heuristicConfidence * 0.35)));
+
+    if (meanConfidence < 70) {
+      warnings.push('Low OCR confidence. Review the extracted text carefully.');
+      flags.push({
+        field: 'general',
+        severity: 'warning',
+        message: `OCR confidence is ${Math.round(meanConfidence)}%, below the recommended threshold.`,
+      });
     }
 
-    const ingredientPatterns = [
-      /^[\d\/\.\s]+(cup|tbsp|tsp|oz|lb|g|kg|ml|l|piece|clove|pinch)/i,
-      /^\d+/
-    ];
-
-    const ingredients: any[] = [];
-    const steps: any[] = [];
-    let inIngredientsSection = false;
-    let inStepsSection = false;
-
-    for (const line of lines) {
-      const lower = line.toLowerCase();
-
-      if (lower.includes('ingredient')) {
-        inIngredientsSection = true;
-        inStepsSection = false;
-        continue;
-      }
-
-      if (lower.includes('direction') || lower.includes('instruction') || lower.includes('step')) {
-        inStepsSection = true;
-        inIngredientsSection = false;
-        continue;
-      }
-
-      if (inIngredientsSection) {
-        const match = line.match(/^([\d\/\.\s]+)\s*([a-zA-Z]+)?\s*(.+)$/);
-        if (match) {
-          ingredients.push({
-            amount: match[1].trim(),
-            unit: match[2]?.trim() || '',
-            name: match[3].trim()
-          });
-        } else if (ingredientPatterns.some(p => p.test(line))) {
-          ingredients.push({ amount: '', unit: '', name: line.trim() });
-        }
-      }
-
-      if (inStepsSection) {
-        const stepMatch = line.match(/^(\d+)[\.:\)]\s*(.+)$/);
-        if (stepMatch) {
-          steps.push({ order: parseInt(stepMatch[1]), text: stepMatch[2].trim() });
-        } else if (line.length > 20) {
-          steps.push({ order: steps.length + 1, text: line.trim() });
-        }
-      }
+    if (!result.title || result.title.length < 4) {
+      warnings.push('Title may be incomplete.');
+      flags.push({
+        field: 'title',
+        severity: 'warning',
+        message: 'Could not confidently identify the recipe title.',
+      });
     }
 
-    result.ingredients = ingredients;
-    result.steps = steps;
+    if (result.ingredients.length === 0) {
+      warnings.push('No ingredient lines were confidently extracted.');
+      flags.push({
+        field: 'ingredients',
+        severity: 'error',
+        message: 'Ingredients section could not be confidently detected.',
+      });
+    }
 
-    const totalParsed = ingredients.length + steps.length;
-    const totalLines = lines.length;
-    result.confidence = Math.min(0.9, totalParsed / Math.max(1, totalLines / 2));
+    if (result.steps.length === 0) {
+      warnings.push('No preparation steps were confidently extracted.');
+      flags.push({
+        field: 'steps',
+        severity: 'error',
+        message: 'Steps section could not be confidently detected.',
+      });
+    }
+
+    if (result.ingredients.length > 0 && result.steps.length > 0 && result.confidence >= 0.7) {
+      flags.push({
+        field: 'general',
+        severity: 'info',
+        message: 'OCR text looks usable for recipe parsing.',
+      });
+    }
 
     if (result.confidence < 0.7) {
-      result.errors.push('Low confidence OCR result. Please review and correct the extracted data.');
+      errors.push('Low confidence OCR result. Please review and correct the extracted data.');
     }
 
     return { data: result, error: null };
@@ -115,4 +143,114 @@ export async function handleOcrImport(storagePath: string, supabaseUrl: string, 
       partial: null
     };
   }
+}
+
+function findTitle(lines: string[]) {
+  return lines.find((line) => {
+    const lower = line.toLowerCase();
+    return (
+      line.length >= 4 &&
+      line.length <= 90 &&
+      !INGREDIENT_HEADER_PATTERN.test(lower) &&
+      !STEP_HEADER_PATTERN.test(lower)
+    );
+  }) || null;
+}
+
+function extractIngredients(lines: string[]) {
+  const ingredients: Array<{ amount: string; unit: string; name: string }> = [];
+  let inIngredientsSection = false;
+
+  for (const line of lines) {
+    if (INGREDIENT_HEADER_PATTERN.test(line)) {
+      inIngredientsSection = true;
+      continue;
+    }
+
+    if (STEP_HEADER_PATTERN.test(line)) {
+      inIngredientsSection = false;
+    }
+
+    if (!inIngredientsSection) continue;
+
+    const match = line.match(INGREDIENT_LINE_PATTERN);
+    if (!match) continue;
+
+    const amount = match[1]?.trim() || '';
+    const unit = match[2]?.trim() || '';
+    const name = match[3]?.trim() || line.trim();
+
+    if (amount || UNIT_HINT_PATTERN.test(line) || name.length > 2) {
+      ingredients.push({ amount, unit, name });
+    }
+  }
+
+  return dedupeIngredients(ingredients);
+}
+
+function extractSteps(lines: string[]) {
+  const steps: Array<{ order: number; text: string }> = [];
+  let inStepsSection = false;
+
+  for (const line of lines) {
+    if (STEP_HEADER_PATTERN.test(line)) {
+      inStepsSection = true;
+      continue;
+    }
+
+    if (!inStepsSection) continue;
+
+    const numberedMatch = line.match(NUMBERED_STEP_PATTERN);
+    if (numberedMatch) {
+      steps.push({
+        order: Number.parseInt(numberedMatch[1], 10),
+        text: numberedMatch[2].trim(),
+      });
+      continue;
+    }
+
+    if (line.length >= 30) {
+      steps.push({
+        order: steps.length + 1,
+        text: line.trim(),
+      });
+    }
+  }
+
+  return dedupeSteps(steps);
+}
+
+function dedupeIngredients(ingredients: Array<{ amount: string; unit: string; name: string }>) {
+  const seen = new Set<string>();
+  return ingredients.filter((ingredient) => {
+    const key = `${ingredient.amount}|${ingredient.unit}|${ingredient.name}`.toLowerCase();
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
+
+function dedupeSteps(steps: Array<{ order: number; text: string }>) {
+  const seen = new Set<string>();
+  return steps
+    .filter((step) => {
+      const key = step.text.toLowerCase();
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    })
+    .map((step, index) => ({ ...step, order: index + 1 }));
+}
+
+function scoreHeuristics(lines: string[], ingredientCount: number, stepCount: number, title: string | null) {
+  let score = 0.2;
+
+  if (lines.length >= 6) score += 0.1;
+  if (title) score += 0.15;
+  if (ingredientCount >= 3) score += 0.25;
+  if (stepCount >= 2) score += 0.25;
+  if (lines.some((line) => INGREDIENT_HEADER_PATTERN.test(line))) score += 0.025;
+  if (lines.some((line) => STEP_HEADER_PATTERN.test(line))) score += 0.025;
+
+  return Math.min(score, 0.95);
 }

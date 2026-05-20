@@ -1,17 +1,36 @@
+import { useMemo, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useDraft } from '../hooks/useDraft'
 import { supabase } from '../lib/supabase'
 import slugify from 'slugify'
-import { Save, Share2, Trash2, Eye, Check } from 'lucide-react'
-import type { Ingredient } from '../lib/types/recipe'
-import { useState } from 'react'
+import { Save, Share2, Trash2, Eye, Check, AlertTriangle, FileText } from 'lucide-react'
+import type { Ingredient, ImportFlagField } from '../lib/types/recipe'
 import { Layout } from '../components/Layout'
+import { Alert, AlertDescription, AlertTitle } from '../app/components/ui/alert'
 
 export function DraftEditor() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
   const { draft, updateField, save, saveStatus, loading } = useDraft(id!)
   const [showShare, setShowShare] = useState(false)
+
+  const flaggedFields = useMemo(() => {
+    const grouped = new Map<ImportFlagField, string[]>()
+
+    for (const flag of draft?.import_flags || []) {
+      const messages = grouped.get(flag.field) || []
+      messages.push(flag.message)
+      grouped.set(flag.field, messages)
+    }
+
+    return grouped
+  }, [draft?.import_flags])
+
+  const getFieldClassName = (field: ImportFlagField) => {
+    return flaggedFields.has(field)
+      ? 'w-full px-4 py-2 bg-amber-50 border border-amber-300 rounded-lg focus:ring-2 focus:ring-[#C0622F] focus:border-transparent'
+      : 'w-full px-4 py-2 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#C0622F] focus:border-transparent'
+  }
 
   if (loading || !draft) {
     return (
@@ -61,12 +80,19 @@ export function DraftEditor() {
       return
     }
 
+    const reviewedAt = new Date().toISOString()
+    updateField('import_reviewed_at', reviewedAt)
     await save()
 
     const slug = slugify(draft.title, { lower: true, strict: true })
     const { error } = await supabase
       .from('recipes')
-      .update({ status: 'published', published_at: new Date().toISOString(), slug })
+      .update({
+        status: 'published',
+        published_at: new Date().toISOString(),
+        import_reviewed_at: reviewedAt,
+        slug
+      })
       .eq('id', draft.id)
 
     if (!error) {
@@ -118,13 +144,68 @@ export function DraftEditor() {
     >
       <div className="max-w-3xl pb-28">
         <div className="space-y-6">
+          {draft.import_method === 'ocr' && (
+            <div className="space-y-4">
+              {(draft.import_warnings?.length || 0) > 0 && (
+                <Alert className="border-amber-200 bg-amber-50 text-amber-900">
+                  <AlertTriangle className="h-4 w-4" />
+                  <AlertTitle>OCR review recommended</AlertTitle>
+                  <AlertDescription>
+                    <ul className="list-disc pl-5 space-y-1">
+                      {(draft.import_warnings || []).map((warning) => (
+                        <li key={warning}>{warning}</li>
+                      ))}
+                    </ul>
+                  </AlertDescription>
+                </Alert>
+              )}
+
+              {!!draft.import_flags?.length && (
+                <div className="rounded-lg border border-gray-200 bg-white p-4">
+                  <div className="flex items-center gap-2 mb-3">
+                    <FileText size={18} className="text-[#C0622F]" />
+                    <h2 className="font-medium text-[#1A1A18]">Flagged fields</h2>
+                  </div>
+                  <div className="space-y-2">
+                    {draft.import_flags.map((flag, index) => (
+                      <div
+                        key={`${flag.field}-${flag.message}-${index}`}
+                        className="rounded-md border border-gray-200 px-3 py-2 text-sm"
+                      >
+                        <span className="font-medium capitalize">{flag.field}</span>
+                        <span className="mx-2 text-[#1A1A18]/40">•</span>
+                        <span className="uppercase text-xs tracking-wide text-[#1A1A18]/60">{flag.severity}</span>
+                        <p className="mt-1 text-[#1A1A18]/70">{flag.message}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {!!draft.raw_text && (
+                <div className="rounded-lg border border-gray-200 bg-white p-4">
+                  <h2 className="font-medium text-[#1A1A18] mb-2">Raw OCR text</h2>
+                  <p className="text-xs text-[#1A1A18]/60 mb-3">
+                    Confidence: {Math.round((draft.import_confidence || 0) * 100)}%
+                  </p>
+                  <textarea
+                    value={draft.raw_text}
+                    onChange={(e) => updateField('raw_text', e.target.value)}
+                    rows={10}
+                    className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm"
+                  />
+                </div>
+              )}
+            </div>
+          )}
+
           <div>
             <label className="block text-sm font-medium text-[#1A1A18] mb-2">Title *</label>
             <input
               type="text"
               value={draft.title}
               onChange={(e) => updateField('title', e.target.value)}
-              className="w-full px-4 py-2 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#C0622F] focus:border-transparent"
+              className={getFieldClassName('title')}
               placeholder="Enter recipe title"
             />
           </div>
@@ -135,7 +216,7 @@ export function DraftEditor() {
               value={draft.description || ''}
               onChange={(e) => updateField('description', e.target.value)}
               rows={3}
-              className="w-full px-4 py-2 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#C0622F] focus:border-transparent"
+              className={getFieldClassName('description')}
               placeholder="Describe your recipe"
             />
           </div>
@@ -147,7 +228,7 @@ export function DraftEditor() {
                 type="url"
                 value={draft.image_url || ''}
                 onChange={(e) => updateField('image_url', e.target.value)}
-                className="w-full px-4 py-2 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#C0622F] focus:border-transparent"
+                className={getFieldClassName('image')}
                 placeholder="https://…"
               />
             </div>
@@ -158,7 +239,7 @@ export function DraftEditor() {
                 type="url"
                 value={draft.source_url || ''}
                 onChange={(e) => updateField('source_url', e.target.value)}
-                className="w-full px-4 py-2 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#C0622F] focus:border-transparent"
+                className={getFieldClassName('source')}
                 placeholder="https://…"
               />
             </div>

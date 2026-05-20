@@ -48,9 +48,32 @@ export function useDraft(id: string) {
     if (!draft) return
     setSaveStatus('saving')
     try {
+      const payload = {
+        slug: draft.slug,
+        title: draft.title,
+        description: draft.description,
+        image_url: draft.image_url,
+        source_url: draft.source_url,
+        ingredients: draft.ingredients,
+        steps: draft.steps,
+        tags: draft.tags,
+        status: draft.status,
+        share_token: draft.share_token,
+        share_enabled: draft.share_enabled,
+        import_method: draft.import_method,
+        import_source: draft.import_source,
+        raw_text: draft.raw_text ?? null,
+        import_confidence: draft.import_confidence ?? null,
+        import_errors: draft.import_errors ?? [],
+        import_warnings: draft.import_warnings ?? [],
+        import_flags: draft.import_flags ?? [],
+        import_reviewed_at: draft.import_reviewed_at ?? null,
+        published_at: draft.published_at,
+      }
+
       const { error } = await supabase
         .from('recipes')
-        .update(draft)
+        .update(payload)
         .eq('id', id)
 
       if (error) throw error
