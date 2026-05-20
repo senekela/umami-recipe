@@ -7,6 +7,8 @@ import { Link as LinkIcon, Camera, Sparkles, AlertTriangle, RefreshCcw, CheckCir
 import { Progress } from '../app/components/ui/progress'
 import { Alert, AlertDescription, AlertTitle } from '../app/components/ui/alert'
 import type { DraftSchema, ImportFlag } from '../lib/types/recipe'
+import heic2any from 'heic2any'
+import { z } from 'zod'
 
 type ImportStage =
   | 'idle'
@@ -17,13 +19,23 @@ type ImportStage =
   | 'parsing'
   | 'saving'
 
-type OpenRouterRecipeDraft = {
-  title: string | null
-  description: string | null
-  ingredients: Array<{ amount: string; unit: string; name: string }>
-  steps: Array<{ order: number; text: string }>
-  tags: string[]
-}
+// Zod schema for OpenRouter response validation
+const OpenRouterRecipeSchema = z.object({
+  title: z.string().nullable(),
+  description: z.string().nullable(),
+  ingredients: z.array(z.object({
+    amount: z.string(),
+    unit: z.string(),
+    name: z.string()
+  })),
+  steps: z.array(z.object({
+    order: z.number(),
+    text: z.string()
+  })),
+  tags: z.array(z.string())
+})
+
+type OpenRouterRecipeDraft = z.infer<typeof OpenRouterRecipeSchema>
 
 type ParsedDraft = DraftSchema & {
   warnings: string[]
@@ -31,6 +43,7 @@ type ParsedDraft = DraftSchema & {
 }
 
 const OPENROUTER_MODELS = ['google/gemma-3-27b-it:free', 'mistralai/mistral-7b-instruct:free']
+const MAX_FILE_SIZE = 500 * 1024 // 500 KB
 
 export function Import() {
   const { user } = useAuth()
@@ -172,7 +185,22 @@ export function Import() {
     } catch (err) {
       setPhotoStage('idle')
       setPhotoProgress(0)
-      setError(err instanceof Error ? err.message : 'Failed to prepare photo')
+      
+      // Provide specific error messages based on error type
+      let errorMessage = 'Failed to prepare photo'
+      if (err instanceof Error) {
+        if (err.message.includes('HEIC')) {
+          errorMessage = 'Failed to convert HEIC image. Try converting to JPG on your device first, or use a different photo format.'
+        } else if (err.message.includes('compress')) {
+          errorMessage = 'Unable to compress image to required size. Try using a smaller image or crop it to just the recipe.'
+        } else if (err.message.includes('processing')) {
+          errorMessage = 'Image processing is not supported in this browser. Try using a modern browser like Chrome, Firefox, or Safari.'
+        } else {
+          errorMessage = err.message
+        }
+      }
+      
+      setError(errorMessage)
     }
   }
 
@@ -196,7 +224,9 @@ export function Import() {
         .from('ocr-uploads')
         .upload(filePath, uploadFile, { upsert: false })
 
-      if (uploadError) throw uploadError
+      if (uploadError) {
+        throw new Error(`Upload failed: ${uploadError.message}. Please check your connection and try again.`)
+      }
 
       setPhotoStage('ocr')
       setPhotoProgress(45)
@@ -206,12 +236,17 @@ export function Import() {
       })
 
       if (edgeError || !ocrData) {
-        throw new Error(edgeError || 'Failed to process image')
+        const errorMsg = edgeError || 'Failed to process image'
+        if (errorMsg.includes('clearer') || errorMsg.includes('contrast')) {
+          throw new Error('OCR could not read the text clearly. Try retaking the photo with better lighting and focus.')
+        }
+        throw new Error(`OCR processing failed: ${errorMsg}`)
       }
 
       setPhotoProgress(68)
       setPhotoStage('parsing')
 
+      // OpenRouter parsing with fallback chain
       const parsedDraft = await parseRecipeWithOpenRouter(ocrData.raw_text || '', openRouterKey)
       const mergedDraft = mergeDraftData(ocrData, parsedDraft)
 
@@ -252,13 +287,30 @@ export function Import() {
         .select()
         .single()
 
-      if (insertError) throw insertError
+      if (insertError) {
+        throw new Error(`Failed to save recipe: ${insertError.message}`)
+      }
 
       setPhotoProgress(100)
-      setSuccessMessage('Photo imported. Review flagged fields before publishing.')
-      navigate(`/drafts/${recipe.id}`)
+      
+      // Provide context-aware success message
+      if (mergedDraft.warnings.length > 0 || mergedDraft.flags.length > 0) {
+        setSuccessMessage('Photo imported with warnings. Please review and correct flagged fields before publishing.')
+      } else {
+        setSuccessMessage('✨ Photo imported successfully! Review the recipe before publishing.')
+      }
+      
+      setTimeout(() => {
+        navigate(`/drafts/${recipe.id}`)
+      }, 800)
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to process image')
+      let errorMessage = 'Failed to process image'
+      
+      if (err instanceof Error) {
+        errorMessage = err.message
+      }
+      
+      setError(errorMessage)
       setPhotoStage('ready')
       setPhotoProgress(0)
     } finally {
@@ -361,7 +413,7 @@ export function Import() {
               <input
                 ref={fileInputRef}
                 type="file"
-                accept="image/*"
+                accept="image/*,.heic,.HEIC"
                 capture="environment"
                 onChange={handlePhotoSelected}
                 disabled={loading}
@@ -476,7 +528,28 @@ export function Import() {
 }
 
 async function preprocessImage(file: File): Promise<{ blob: Blob; fileName: string }> {
-  const image = await loadImage(file)
+  // Step 1: Convert HEIC to PNG if needed
+  let processFile = file
+  const isHeic = file.type === 'image/heic' || file.name.toLowerCase().endsWith('.heic')
+  
+  if (isHeic) {
+    try {
+      const convertedBlob = await heic2any({
+        blob: file,
+        toType: 'image/png',
+        quality: 0.9
+      })
+      
+      // heic2any can return Blob or Blob[], handle both cases
+      const pngBlob = Array.isArray(convertedBlob) ? convertedBlob[0] : convertedBlob
+      processFile = new File([pngBlob], file.name.replace(/\.heic$/i, '.png'), { type: 'image/png' })
+    } catch (error) {
+      throw new Error('Failed to convert HEIC image. Please try a different format.')
+    }
+  }
+
+  // Step 2: Load and preprocess image
+  const image = await loadImage(processFile)
   const maxWidth = 1600
   const scale = Math.min(1, maxWidth / image.width)
   const width = Math.max(1, Math.round(image.width * scale))
@@ -495,6 +568,7 @@ async function preprocessImage(file: File): Promise<{ blob: Blob; fileName: stri
   const imageData = context.getImageData(0, 0, width, height)
   const { data } = imageData
 
+  // Enhance contrast for better OCR
   let min = 255
   let max = 0
 
@@ -516,18 +590,33 @@ async function preprocessImage(file: File): Promise<{ blob: Blob; fileName: stri
 
   context.putImageData(imageData, 0, 0)
 
-  const blob = await new Promise<Blob>((resolve, reject) => {
-    canvas.toBlob((canvasBlob) => {
-      if (!canvasBlob) {
-        reject(new Error('Failed to create processed image'))
-        return
-      }
-      resolve(canvasBlob)
-    }, 'image/jpeg', 0.92)
-  })
+  // Step 3: Compress to ≤500 KB with iterative quality reduction
+  const qualities = [0.85, 0.7, 0.5]
+  let finalBlob: Blob | null = null
 
-  const fileName = file.name.replace(/\.[^.]+$/, '') + '-processed.jpg'
-  return { blob, fileName }
+  for (const quality of qualities) {
+    const blob = await new Promise<Blob>((resolve, reject) => {
+      canvas.toBlob((canvasBlob) => {
+        if (!canvasBlob) {
+          reject(new Error('Failed to create processed image'))
+          return
+        }
+        resolve(canvasBlob)
+      }, 'image/jpeg', quality)
+    })
+
+    if (blob.size <= MAX_FILE_SIZE) {
+      finalBlob = blob
+      break
+    }
+  }
+
+  if (!finalBlob) {
+    throw new Error('Unable to compress image to required size. Try a smaller or simpler image.')
+  }
+
+  const fileName = file.name.replace(/\.[^.]+$/i, '') + '-processed.jpg'
+  return { blob: finalBlob, fileName }
 }
 
 function loadImage(file: File): Promise<HTMLImageElement> {
@@ -555,18 +644,30 @@ async function parseRecipeWithOpenRouter(rawText: string, apiKey: string): Promi
   }
 
   if (!apiKey) {
+    console.warn('OpenRouter API key not configured. Skipping AI parsing.')
     return null
   }
 
+  // Enhanced system prompt with explicit JSON schema
   const systemPrompt = [
-    'Extract a printed recipe page into strict JSON.',
-    'Return only valid JSON with keys: title, description, ingredients, steps, tags.',
-    'ingredients must be an array of objects with amount, unit, name.',
-    'steps must be an array of objects with order and text.',
-    'If a field is unknown, use null for title/description and empty arrays for ingredients/steps/tags.',
-    'Do not include markdown fences or commentary.'
-  ].join(' ')
+    'You are a recipe extraction expert. Extract the recipe from the OCR text into strict JSON format.',
+    'REQUIRED JSON SCHEMA:',
+    '{',
+    '  "title": string | null,',
+    '  "description": string | null,',
+    '  "ingredients": [{ "amount": string, "unit": string, "name": string }],',
+    '  "steps": [{ "order": number, "text": string }],',
+    '  "tags": string[]',
+    '}',
+    'RULES:',
+    '- Return ONLY valid JSON, no markdown fences or commentary',
+    '- If a field is unknown, use null for title/description and empty arrays for ingredients/steps/tags',
+    '- Ingredients must have amount, unit, and name (use empty strings if not found)',
+    '- Steps must have sequential order numbers starting from 1',
+    '- Extract cooking-related tags (e.g., "dessert", "quick", "vegetarian")'
+  ].join('\n')
 
+  // Try each model in the fallback chain
   for (const model of OPENROUTER_MODELS) {
     try {
       const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
@@ -574,18 +675,24 @@ async function parseRecipeWithOpenRouter(rawText: string, apiKey: string): Promi
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${apiKey}`,
+          'HTTP-Referer': window.location.origin,
+          'X-Title': 'Umami Recipe App'
         },
         body: JSON.stringify({
           model,
           response_format: { type: 'json_object' },
           messages: [
             { role: 'system', content: systemPrompt },
-            { role: 'user', content: rawText }
-          ]
+            { role: 'user', content: `Extract the recipe from this OCR text:\n\n${rawText}` }
+          ],
+          temperature: 0.3,
+          max_tokens: 2000
         })
       })
 
       if (!response.ok) {
+        const errorText = await response.text()
+        console.warn(`OpenRouter ${model} failed:`, response.status, errorText)
         continue
       }
 
@@ -593,16 +700,23 @@ async function parseRecipeWithOpenRouter(rawText: string, apiKey: string): Promi
       const content = json?.choices?.[0]?.message?.content
 
       if (!content || typeof content !== 'string') {
+        console.warn(`OpenRouter ${model} returned invalid content`)
         continue
       }
 
-      const candidate = JSON.parse(content)
-      return normalizeOpenRouterDraft(candidate)
-    } catch {
+      // Parse and validate with Zod
+      const parsedJson = JSON.parse(content)
+      const validatedDraft = OpenRouterRecipeSchema.parse(parsedJson)
+      
+      console.log(`✓ Successfully parsed recipe with ${model}`)
+      return validatedDraft
+    } catch (error) {
+      console.warn(`OpenRouter ${model} parsing failed:`, error)
       continue
     }
   }
 
+  console.warn('All OpenRouter models failed. Falling back to OCR-only draft.')
   return null
 }
 
