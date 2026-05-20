@@ -6,7 +6,7 @@
  * TypeScript scraper if the Python API is unavailable.
  */
 
-const PYTHON_SCRAPER_URL = Deno.env.get('PYTHON_SCRAPER_URL') || 'http://localhost:5001';
+const PYTHON_SCRAPER_URL = Deno.env.get('PYTHON_SCRAPER_URL') || 'https://umami-recipe.onrender.com';
 
 interface PythonScraperResponse {
   success: boolean;

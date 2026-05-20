@@ -39,10 +39,18 @@ export function Import() {
           setSuccessMessage('✓ Recipe imported successfully')
         }
 
+        // Generate a unique slug from title
+        const title = data.title || 'Untitled Recipe'
+        const baseSlug = title
+          .toLowerCase()
+          .replace(/[^a-z0-9]+/g, '-')
+          .replace(/^-+|-+$/g, '')
+        const slug = `${baseSlug}-${Date.now()}`
+
         const { data: recipe, error: insertError } = await supabase
           .from('recipes')
           .insert({
-            title: data.title || 'Untitled Recipe',
+            title,
             description: data.description,
             image_url: data.image_url,
             source_url: url,
@@ -53,7 +61,7 @@ export function Import() {
             status: 'draft',
             import_method: 'url',
             import_source: url,
-            slug: ''
+            slug
           })
           .select()
           .single()
@@ -100,10 +108,18 @@ export function Import() {
       }
 
       if (data) {
+        // Generate a unique slug from title
+        const title = data.title || 'Untitled Recipe'
+        const baseSlug = title
+          .toLowerCase()
+          .replace(/[^a-z0-9]+/g, '-')
+          .replace(/^-+|-+$/g, '')
+        const slug = `${baseSlug}-${Date.now()}`
+
         const { data: recipe, error: insertError } = await supabase
           .from('recipes')
           .insert({
-            title: data.title || 'Untitled Recipe',
+            title,
             description: data.description,
             image_url: data.image_url,
             source_url: data.source_url,
@@ -114,7 +130,7 @@ export function Import() {
             status: 'draft',
             import_method: 'ocr',
             import_source: fileName,
-            slug: ''
+            slug
           })
           .select()
           .single()

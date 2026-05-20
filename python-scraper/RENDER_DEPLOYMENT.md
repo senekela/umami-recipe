@@ -131,7 +131,7 @@ You should get recipe data back!
 Edit [`supabase/functions/server/import-url.tsx`](../supabase/functions/server/import-url.tsx:1):
 
 ```typescript
-const PYTHON_SCRAPER_URL = 'https://YOUR-APP.onrender.com';
+const PYTHON_SCRAPER_URL = 'https://umami-recipe.onrender.com';
 
 export async function handleUrlImport(url: string) {
   try {
