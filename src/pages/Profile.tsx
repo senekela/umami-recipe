@@ -63,7 +63,10 @@ export function Profile() {
         .select()
         .single()
 
-      if (error) throw error
+      if (error) {
+        console.error('Supabase update error:', error)
+        throw error
+      }
       
       // Update local state immediately
       if (data) {
@@ -72,9 +75,9 @@ export function Profile() {
 
       setSuccess('Nickname updated successfully')
       await loadProfile()
-    } catch (err) {
+    } catch (err: any) {
       console.error('Failed to update nickname:', err)
-      setError('Failed to update nickname')
+      setError(err?.message || 'Failed to update nickname')
     } finally {
       setSaving(false)
     }
@@ -125,21 +128,31 @@ export function Profile() {
         .getPublicUrl(filePath)
 
       // Update profile with new avatar URL
-      const { error: updateError } = await supabase
+      const { data: updateData, error: updateError } = await supabase
         .from('profiles')
         .update({
           avatar_url: publicUrl,
           avatar_path: filePath,
         })
         .eq('id', user.id)
+        .select()
+        .single()
 
-      if (updateError) throw updateError
+      if (updateError) {
+        console.error('Profile update error:', updateError)
+        throw updateError
+      }
+      
+      // Update local state immediately
+      if (updateData) {
+        setProfile(updateData)
+      }
 
       setSuccess('Profile picture updated successfully')
       await loadProfile()
-    } catch (err) {
+    } catch (err: any) {
       console.error('Failed to upload avatar:', err)
-      setError('Failed to upload profile picture')
+      setError(err?.message || 'Failed to upload profile picture')
     } finally {
       setUploading(false)
       if (fileInputRef.current) {
