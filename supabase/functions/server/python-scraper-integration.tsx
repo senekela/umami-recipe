@@ -110,11 +110,13 @@ function transformPythonRecipe(data: PythonScraperResponse['data']): RecipeData 
 
 /**
  * Parse ingredient strings into structured format
+ * Handles French and English ingredients with units like "g", "cl", "cuillères", etc.
  */
 function parseIngredients(ingredients: string[]): Array<{ amount: string; unit: string; name: string }> {
   return ingredients.map(ing => {
-    // Enhanced regex to handle fractions, decimals, and ranges
-    const match = ing.match(/^([\d\/\.\s\-]+)?\s*([a-zA-Zéèêëàâäôöûüçñ]+)?\s*(.+)$/);
+    // Match patterns like: "300 g de farine" or "3 cuillères à soupe de sucre"
+    // Captures: amount, unit (including multi-word units), and ingredient name
+    const match = ing.match(/^([\d\/\.\s\-]+)?\s*([a-zA-Zéèêëàâäôöûüçñ]+(?:\s+[aà]\s+[a-zA-Zéèêëàâäôöûüçñ]+)?)\s+(?:de|d'|of)?\s*(.+)$/i);
     
     if (match) {
       return {
@@ -124,6 +126,17 @@ function parseIngredients(ingredients: string[]): Array<{ amount: string; unit: 
       };
     }
     
+    // Fallback: try simpler pattern without "de/of"
+    const simpleMatch = ing.match(/^([\d\/\.\s\-]+)?\s*([a-zA-Zéèêëàâäôöûüçñ]+)?\s*(.+)$/);
+    if (simpleMatch && simpleMatch[3]) {
+      return {
+        amount: simpleMatch[1]?.trim() || '',
+        unit: simpleMatch[2]?.trim() || '',
+        name: simpleMatch[3]?.trim()
+      };
+    }
+    
+    // If no pattern matches, return the whole string as the ingredient name
     return { amount: '', unit: '', name: ing.trim() };
   });
 }
