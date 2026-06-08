@@ -1,7 +1,7 @@
 """
 Recipe Scraper API
 A Flask-based REST API for scraping recipes from various cooking websites
-and extracting recipe text from images with PaddleOCR.
+and extracting recipe text from images with Tesseract OCR.
 """
 
 from flask import Flask, request, jsonify
@@ -14,12 +14,12 @@ import os
 import re
 from io import BytesIO
 
-from PIL import Image, ImageOps
+from PIL import Image, ImageOps, ImageEnhance
 
 try:
-    from paddleocr import PaddleOCR
+    import pytesseract
 except ImportError:  # pragma: no cover - handled at runtime
-    PaddleOCR = None
+    pytesseract = None
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -41,26 +41,20 @@ UNIT_HINT_PATTERN = re.compile(
     re.IGNORECASE,
 )
 
-_paddle_ocr_instance = None
-
-
-def get_paddle_ocr():
-    global _paddle_ocr_instance
-
-    if _paddle_ocr_instance is not None:
-        return _paddle_ocr_instance
-
-    if PaddleOCR is None:
+def check_tesseract_available():
+    """Check if Tesseract OCR is available"""
+    if pytesseract is None:
         raise RuntimeError(
-            'PaddleOCR is not installed. Add paddleocr and paddlepaddle to python-scraper/requirements.txt.'
+            'pytesseract is not installed. Add pytesseract to python-scraper/requirements.txt.'
         )
-
-    _paddle_ocr_instance = PaddleOCR(
-        use_angle_cls=True,
-        lang=os.environ.get('PADDLEOCR_LANG', 'en'),
-        show_log=False,
-    )
-    return _paddle_ocr_instance
+    
+    try:
+        # Test if tesseract binary is available
+        pytesseract.get_tesseract_version()
+    except Exception as e:
+        raise RuntimeError(
+            f'Tesseract OCR binary not found. Install tesseract-ocr system package. Error: {str(e)}'
+        )
 
 
 def scrape_recipe(url: str) -> Dict[str, Any]:
@@ -98,49 +92,36 @@ def scrape_recipe(url: str) -> Dict[str, Any]:
 
 
 def preprocess_image_bytes(image_bytes: bytes) -> Image.Image:
-    image = Image.open(BytesIO(image_bytes)).convert('L')
-    image = ImageOps.autocontrast(image)
-    max_width = 1800
-
+    """Preprocess image for better OCR results"""
+    image = Image.open(BytesIO(image_bytes))
+    
+    # Convert to grayscale
+    image = image.convert('L')
+    
+    # Enhance contrast
+    enhancer = ImageEnhance.Contrast(image)
+    image = enhancer.enhance(2.0)
+    
+    # Resize if too large
+    max_width = 2000
     if image.width > max_width:
         ratio = max_width / float(image.width)
-        image = image.resize((max_width, max(1, int(image.height * ratio))))
-
+        new_height = max(1, int(image.height * ratio))
+        image = image.resize((max_width, new_height), Image.Resampling.LANCZOS)
+    
     return image
 
 
-def flatten_ocr_lines(ocr_result: Any) -> List[Dict[str, Any]]:
-    lines: List[Dict[str, Any]] = []
-
-    if not ocr_result:
-        return lines
-
-    for page in ocr_result:
-        if not page:
-            continue
-        for item in page:
-            if not item or len(item) < 2:
-                continue
-            box = item[0]
-            text_info = item[1]
-            if not text_info or len(text_info) < 2:
-                continue
-
-            text = str(text_info[0]).strip()
-            confidence = float(text_info[1]) if text_info[1] is not None else 0.0
-
-            if not text:
-                continue
-
-            top = min(point[1] for point in box) if box else 0
-            lines.append({
-                'text': text,
-                'confidence': confidence,
-                'top': top,
-            })
-
-    lines.sort(key=lambda line: line['top'])
-    return lines
+def extract_text_with_tesseract(image: Image.Image) -> str:
+    """Extract text from image using Tesseract OCR"""
+    check_tesseract_available()
+    
+    # Use pytesseract to extract text
+    # PSM 6 = Assume a single uniform block of text
+    custom_config = r'--oem 3 --psm 6'
+    text = pytesseract.image_to_string(image, config=custom_config)
+    
+    return text.strip()
 
 
 def find_title(lines: List[str]):
@@ -262,104 +243,114 @@ def score_heuristics(lines: List[str], ingredient_count: int, step_count: int, t
 
 
 def extract_recipe_from_image_bytes(image_bytes: bytes) -> Dict[str, Any]:
-    image = preprocess_image_bytes(image_bytes)
-    ocr = get_paddle_ocr()
-    ocr_result = ocr.ocr(image, cls=True)
-    flattened = flatten_ocr_lines(ocr_result)
+    """Extract recipe from image using Tesseract OCR"""
+    try:
+        image = preprocess_image_bytes(image_bytes)
+        raw_text = extract_text_with_tesseract(image)
 
-    text_lines = [line['text'] for line in flattened if line['text']]
-    raw_text = '\n'.join(text_lines).strip()
+        if len(raw_text) < 20:
+            return {
+                'success': False,
+                'error': 'Could not extract enough text. Try a clearer, higher-contrast photo of the recipe page',
+            }
 
-    if len(raw_text) < 20:
+        text_lines = [line.strip() for line in raw_text.split('\n') if line.strip()]
+
+        warnings: List[str] = []
+        errors: List[str] = []
+        flags: List[Dict[str, str]] = []
+
+        title = find_title(text_lines)
+        ingredients = extract_ingredients(text_lines)
+        steps = extract_steps(text_lines)
+        
+        # Calculate confidence based on heuristics
+        heuristic_confidence = score_heuristics(text_lines, len(ingredients), len(steps), title)
+        confidence = heuristic_confidence
+
+        if confidence < 0.7:
+            warnings.append('OCR confidence is moderate. Review the extracted text carefully.')
+            flags.append({
+                'field': 'general',
+                'severity': 'warning',
+                'message': f'OCR confidence is {round(confidence * 100)}%, below the recommended threshold.',
+            })
+
+        if not title or len(title) < 4:
+            warnings.append('Title may be incomplete.')
+            flags.append({
+                'field': 'title',
+                'severity': 'warning',
+                'message': 'Could not confidently identify the recipe title.',
+            })
+
+        if len(ingredients) == 0:
+            warnings.append('No ingredient lines were confidently extracted.')
+            flags.append({
+                'field': 'ingredients',
+                'severity': 'error',
+                'message': 'Ingredients section could not be confidently detected.',
+            })
+
+        if len(steps) == 0:
+            warnings.append('No preparation steps were confidently extracted.')
+            flags.append({
+                'field': 'steps',
+                'severity': 'error',
+                'message': 'Steps section could not be confidently detected.',
+            })
+
+        if ingredients and steps and confidence >= 0.7:
+            flags.append({
+                'field': 'general',
+                'severity': 'info',
+                'message': 'OCR text looks usable for recipe parsing.',
+            })
+
+        if confidence < 0.7:
+            errors.append('Moderate confidence OCR result. Please review and correct the extracted data.')
+
+        return {
+            'success': True,
+            'data': {
+                'title': title,
+                'description': None,
+                'image_url': None,
+                'source_url': None,
+                'ingredients': ingredients,
+                'steps': steps,
+                'tags': [],
+                'confidence': confidence,
+                'raw_text': raw_text,
+                'errors': errors,
+                'warnings': warnings,
+                'flags': flags,
+                'ocr_engine': 'tesseract',
+            }
+        }
+    except RuntimeError as e:
         return {
             'success': False,
-            'error': 'Try a clearer, higher-contrast photo of the recipe page',
+            'error': str(e)
         }
-
-    mean_confidence = 0.0
-    if flattened:
-        mean_confidence = sum(line['confidence'] for line in flattened) / len(flattened)
-
-    warnings: List[str] = []
-    errors: List[str] = []
-    flags: List[Dict[str, str]] = []
-
-    title = find_title(text_lines)
-    ingredients = extract_ingredients(text_lines)
-    steps = extract_steps(text_lines)
-    heuristic_confidence = score_heuristics(text_lines, len(ingredients), len(steps), title)
-    confidence = max(0.0, min(0.99, (mean_confidence * 0.65) + (heuristic_confidence * 0.35)))
-
-    if mean_confidence < 0.7:
-        warnings.append('Low OCR confidence. Review the extracted text carefully.')
-        flags.append({
-            'field': 'general',
-            'severity': 'warning',
-            'message': f'OCR confidence is {round(mean_confidence * 100)}%, below the recommended threshold.',
-        })
-
-    if not title or len(title) < 4:
-        warnings.append('Title may be incomplete.')
-        flags.append({
-            'field': 'title',
-            'severity': 'warning',
-            'message': 'Could not confidently identify the recipe title.',
-        })
-
-    if len(ingredients) == 0:
-        warnings.append('No ingredient lines were confidently extracted.')
-        flags.append({
-            'field': 'ingredients',
-            'severity': 'error',
-            'message': 'Ingredients section could not be confidently detected.',
-        })
-
-    if len(steps) == 0:
-        warnings.append('No preparation steps were confidently extracted.')
-        flags.append({
-            'field': 'steps',
-            'severity': 'error',
-            'message': 'Steps section could not be confidently detected.',
-        })
-
-    if ingredients and steps and confidence >= 0.7:
-        flags.append({
-            'field': 'general',
-            'severity': 'info',
-            'message': 'OCR text looks usable for recipe parsing.',
-        })
-
-    if confidence < 0.7:
-        errors.append('Low confidence OCR result. Please review and correct the extracted data.')
-
-    return {
-        'success': True,
-        'data': {
-            'title': title,
-            'description': None,
-            'image_url': None,
-            'source_url': None,
-            'ingredients': ingredients,
-            'steps': steps,
-            'tags': [],
-            'confidence': confidence,
-            'raw_text': raw_text,
-            'errors': errors,
-            'warnings': warnings,
-            'flags': flags,
-            'ocr_engine': 'paddleocr',
-        }
-    }
 
 
 @app.route('/health', methods=['GET'])
 def health_check():
     """Health check endpoint"""
+    ocr_status = 'unavailable'
+    if pytesseract is not None:
+        try:
+            pytesseract.get_tesseract_version()
+            ocr_status = 'tesseract'
+        except:
+            ocr_status = 'unavailable'
+    
     return jsonify({
         'status': 'healthy',
         'service': 'recipe-scraper',
-        'version': '1.1.0',
-        'ocr_engine': 'paddleocr' if PaddleOCR is not None else 'unavailable',
+        'version': '1.2.0',
+        'ocr_engine': ocr_status,
     })
 
 
@@ -474,7 +465,7 @@ if __name__ == '__main__':
     logger.info("  GET  /health - Health check")
     logger.info("  GET  /supported-sites - List supported recipe sites")
     logger.info("  POST /scrape - Scrape a recipe from URL")
-    logger.info("  POST /ocr - Extract recipe text from image with PaddleOCR")
+    logger.info("  POST /ocr - Extract recipe text from image with Tesseract OCR")
 
     app.run(host='0.0.0.0', port=port, debug=False)
 
