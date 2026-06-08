@@ -51,10 +51,15 @@ export function useAuth() {
   }
 
   const sendMagicLink = async (email: string) => {
+    // Use the current origin for redirect to support both local dev and production
+    const redirectTo = typeof window !== 'undefined'
+      ? `${window.location.origin}/`
+      : 'http://localhost:5173/'
+    
     return supabase.auth.signInWithOtp({
       email,
       options: {
-        emailRedirectTo: 'https://umami-recipe-hf644i4ho-mayortone-gmailcoms-projects.vercel.app/'
+        emailRedirectTo: redirectTo
       }
     })
   }
