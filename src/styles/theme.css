@@ -4,8 +4,8 @@
   --font-size: 16px;
   
   /* Mindful Moments Color Palette */
-  --background: #1C322D;
-  --foreground: #F8F3EE;
+  --background: #F8F3EE;
+  --foreground: #142622;
   --card: #F8F3EE;
   --card-foreground: #1C322D;
   --card-secondary: #F1CDBE;
@@ -28,8 +28,8 @@
   --input-background: #ffffff;
   --switch-background: #A9B8B5;
   --surface: #FFFFFF;
-  --text-primary: #1C322D;
-  --text-secondary: #4b5f5b;
+  --text-primary: #142622;
+  --text-secondary: #314542;
   
   /* Typography */
   --font-display: 'Playfair Display', Georgia, serif;
@@ -234,6 +234,7 @@
     line-height: var(--label-md-line-height);
     letter-spacing: var(--label-md-letter-spacing);
     text-transform: uppercase;
+    color: var(--text-primary);
   }
 
   button {
@@ -246,12 +247,14 @@
     font-size: var(--body-md-size);
     font-weight: var(--body-md-weight);
     line-height: var(--body-md-line-height);
+    color: var(--text-primary);
   }
   
   p {
     font-size: var(--body-md-size);
     font-weight: var(--body-md-weight);
     line-height: var(--body-md-line-height);
+    color: var(--text-primary);
   }
 
   .ingredient input[type="checkbox"]:checked + label {
