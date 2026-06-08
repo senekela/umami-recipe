@@ -13,7 +13,7 @@ function getPublisherInitials(name: string | null | undefined) {
 }
 
 export function RecipeCard({ recipe }: { recipe: Recipe }) {
-  const publisherName = recipe.publisher?.display_name?.trim() || 'Umami cook'
+  const publisherName = recipe.publisher?.nickname?.trim() || 'Umami cook'
 
   return (
     <Link to={`/recipes/${recipe.slug}`} className="block group">
@@ -34,29 +34,27 @@ export function RecipeCard({ recipe }: { recipe: Recipe }) {
             </svg>
           </div>
         )}
-        <div className="p-4 space-y-4">
-          <div className="flex items-center justify-between gap-3">
-            <div className="min-w-0">
-              <h3 className="font-serif text-xl text-[#1A1A18] mb-2 line-clamp-2">{recipe.title}</h3>
-            </div>
+        <div className="p-4 space-y-3">
+          {/* Title spanning full width */}
+          <h3 className="font-serif text-xl text-[#1A1A18] line-clamp-2 leading-tight">
+            {recipe.title}
+          </h3>
 
-            <div className="shrink-0">
-              <div className="inline-flex items-center gap-2 rounded-full border border-[#C0622F]/15 bg-gradient-to-r from-[#FFF8F3] to-white px-2.5 py-1.5 shadow-sm">
-                <Avatar className="h-8 w-8 ring-2 ring-white shadow-sm">
-                  <AvatarFallback className="bg-[#C0622F] text-white text-xs font-semibold">
-                    {getPublisherInitials(publisherName)}
-                  </AvatarFallback>
-                </Avatar>
-                <div className="hidden sm:block">
-                  <p className="text-[10px] uppercase tracking-[0.18em] text-[#C0622F]/70">Publisher</p>
-                  <p className="max-w-[110px] truncate text-xs font-medium text-[#1A1A18]">{publisherName}</p>
-                </div>
-              </div>
-            </div>
+          {/* Publisher badge - small and compact */}
+          <div className="inline-flex items-center gap-1.5 px-2 py-1 rounded-full bg-[#C0622F]/5 border border-[#C0622F]/10">
+            <Avatar className="h-5 w-5">
+              <AvatarFallback className="bg-[#C0622F] text-white text-[10px] font-semibold">
+                {getPublisherInitials(publisherName)}
+              </AvatarFallback>
+            </Avatar>
+            <span className="text-xs text-[#1A1A18]/70 font-medium">
+              {publisherName}
+            </span>
           </div>
 
+          {/* Tags */}
           {recipe.tags.length > 0 && (
-            <div className="flex flex-wrap gap-2">
+            <div className="flex flex-wrap gap-2 pt-1">
               {recipe.tags.slice(0, 3).map(tag => (
                 <span key={tag} className="text-xs px-2 py-1 bg-[#C0622F]/10 text-[#C0622F] rounded-full">
                   {tag}

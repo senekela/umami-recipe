@@ -28,7 +28,7 @@ export type ImportFlag = {
 }
 
 export type RecipePublisher = {
-  display_name: string | null
+  nickname: string | null
 }
 
 export type Recipe = {
