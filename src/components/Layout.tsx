@@ -44,26 +44,28 @@ export function Layout({
 
   return (
     <div className="min-h-screen bg-[#FAFAF7] flex flex-col">
-      <header className="bg-white border-b border-gray-200 sticky top-0 z-20">
-        <div className="max-w-5xl mx-auto px-4">
-          <div className="flex items-center gap-3 h-16">
+      <header className="bg-white/95 backdrop-blur-sm border-b border-gray-200/80 sticky top-0 z-20 shadow-sm">
+        <div className="max-w-5xl mx-auto px-4 sm:px-6">
+          <div className="flex items-center gap-4 h-14 sm:h-16">
             {showBack ? (
               <button
                 onClick={handleBack}
                 aria-label="Go back"
-                className="-ml-2 p-2 rounded-full hover:bg-gray-100 text-[#1A1A18]"
+                className="-ml-2 p-2 rounded-lg hover:bg-gray-100 text-[#1A1A18] transition-all hover:scale-105 active:scale-95"
               >
-                <ArrowLeft size={22} />
+                <ArrowLeft size={20} strokeWidth={2.5} />
               </button>
             ) : (
-              <Link to="/" className="flex items-center" aria-label="Umami home">
-                <span className="font-serif text-2xl text-[#1A1A18] leading-none">Umami</span>
+              <Link to="/" className="flex items-center group" aria-label="Umami home">
+                <span className="font-serif text-2xl sm:text-[26px] text-[#1A1A18] leading-none tracking-tight group-hover:text-[#C0622F] transition-colors">
+                  Umami
+                </span>
               </Link>
             )}
 
             {title && (
               <h1
-                className={`font-serif text-xl text-[#1A1A18] truncate ${
+                className={`font-serif text-lg sm:text-xl text-[#1A1A18] truncate font-medium ${
                   showBack ? '' : 'hidden sm:block'
                 }`}
               >
@@ -71,7 +73,7 @@ export function Layout({
               </h1>
             )}
 
-            <nav className="ml-auto hidden md:flex items-center gap-1" aria-label="Main">
+            <nav className="ml-auto hidden md:flex items-center gap-0.5" aria-label="Main">
               {NAV_ITEMS.map((item) => {
                 const active = item.match(location.pathname)
                 const Icon = item.icon
@@ -79,14 +81,14 @@ export function Layout({
                   <Link
                     key={item.to}
                     to={item.to}
-                    className={`flex items-center gap-2 px-3 py-2 rounded-md text-sm transition-colors ${
+                    className={`flex items-center gap-2 px-3.5 py-2 rounded-lg text-sm font-medium transition-all ${
                       active
-                        ? 'text-[#C0622F] bg-[#C0622F]/10'
-                        : 'text-[#1A1A18]/70 hover:text-[#1A1A18] hover:bg-gray-100'
+                        ? 'text-[#C0622F] bg-[#C0622F]/10 shadow-sm'
+                        : 'text-[#1A1A18]/60 hover:text-[#1A1A18] hover:bg-gray-100/80'
                     }`}
                     aria-current={active ? 'page' : undefined}
                   >
-                    <Icon size={18} />
+                    <Icon size={18} strokeWidth={2} />
                     <span>{item.label}</span>
                   </Link>
                 )
@@ -96,7 +98,7 @@ export function Layout({
             {rightSlot && <div className="ml-auto md:ml-2 flex items-center gap-2">{rightSlot}</div>}
           </div>
 
-          {belowHeader && <div className="pb-3">{belowHeader}</div>}
+          {belowHeader && <div className="pb-4 pt-1">{belowHeader}</div>}
         </div>
       </header>
 
