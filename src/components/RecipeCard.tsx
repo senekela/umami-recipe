@@ -34,22 +34,24 @@ export function RecipeCard({ recipe }: { recipe: Recipe }) {
             </svg>
           </div>
         )}
-        <div className="p-4 space-y-3">
-          {/* Title spanning full width */}
-          <h3 className="font-serif text-xl text-[#1A1A18] line-clamp-2 leading-tight">
-            {recipe.title}
-          </h3>
-
-          {/* Publisher badge - small and compact */}
-          <div className="inline-flex items-center gap-1.5 px-2 py-1 rounded-full bg-[#C0622F]/5 border border-[#C0622F]/10">
-            <Avatar className="h-5 w-5">
-              <AvatarFallback className="bg-[#C0622F] text-white text-[10px] font-semibold">
-                {getPublisherInitials(publisherName)}
-              </AvatarFallback>
-            </Avatar>
-            <span className="text-xs text-[#1A1A18]/70 font-medium">
-              {publisherName}
-            </span>
+        <div className="p-4 space-y-2">
+          {/* Title and publisher badge grouped together */}
+          <div className="space-y-1.5">
+            <h3 className="font-serif text-xl text-[#1A1A18] line-clamp-2 leading-tight">
+              {recipe.title}
+            </h3>
+            
+            {/* Publisher badge - tiny tag under title */}
+            <div className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-[#C0622F]/5 border border-[#C0622F]/10">
+              <Avatar className="h-3.5 w-3.5">
+                <AvatarFallback className="bg-[#C0622F] text-white text-[8px] font-semibold">
+                  {getPublisherInitials(publisherName)}
+                </AvatarFallback>
+              </Avatar>
+              <span className="text-[10px] text-[#1A1A18]/60 font-medium uppercase tracking-wide">
+                {publisherName}
+              </span>
+            </div>
           </div>
 
           {/* Tags */}
