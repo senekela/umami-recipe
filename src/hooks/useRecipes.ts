@@ -19,7 +19,7 @@ export function useRecipes(filters?: { search?: string; tags?: string[] }) {
         .from('recipes')
         .select(`
           *,
-          publisher:profiles!recipes_owner_id_fkey(display_name)
+          publisher:profiles!recipes_owner_id_fkey(nickname)
         `)
         .eq('status', 'published')
         .order('published_at', { ascending: false })
