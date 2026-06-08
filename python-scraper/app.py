@@ -1,14 +1,25 @@
 """
 Recipe Scraper API
 A Flask-based REST API for scraping recipes from various cooking websites
+and extracting recipe text from images with PaddleOCR.
 """
 
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 from recipe_scrapers import scrape_html
 import requests
-from typing import Dict, Any
+from typing import Dict, Any, List
 import logging
+import os
+import re
+from io import BytesIO
+
+from PIL import Image, ImageOps
+
+try:
+    from paddleocr import PaddleOCR
+except ImportError:  # pragma: no cover - handled at runtime
+    PaddleOCR = None
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -21,6 +32,36 @@ CORS(app)
 app.config['JSON_SORT_KEYS'] = False
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024
 
+INGREDIENT_HEADER_PATTERN = re.compile(r'\bingredients?\b', re.IGNORECASE)
+STEP_HEADER_PATTERN = re.compile(r'\b(directions?|instructions?|method|steps?)\b', re.IGNORECASE)
+INGREDIENT_LINE_PATTERN = re.compile(r'^([\d¼½¾⅓⅔⅛⅜⅝⅞\/\.\s]+)?\s*([a-zA-Z]+)?\s+(.+)$')
+NUMBERED_STEP_PATTERN = re.compile(r'^(\d+)[\.\):]\s*(.+)$')
+UNIT_HINT_PATTERN = re.compile(
+    r'\b(cup|cups|tbsp|tablespoon|tablespoons|tsp|teaspoon|teaspoons|oz|ounce|ounces|lb|lbs|pound|pounds|g|gram|grams|kg|ml|l|pinch|clove|cloves)\b',
+    re.IGNORECASE,
+)
+
+_paddle_ocr_instance = None
+
+
+def get_paddle_ocr():
+    global _paddle_ocr_instance
+
+    if _paddle_ocr_instance is not None:
+        return _paddle_ocr_instance
+
+    if PaddleOCR is None:
+        raise RuntimeError(
+            'PaddleOCR is not installed. Add paddleocr and paddlepaddle to python-scraper/requirements.txt.'
+        )
+
+    _paddle_ocr_instance = PaddleOCR(
+        use_angle_cls=True,
+        lang=os.environ.get('PADDLEOCR_LANG', 'en'),
+        show_log=False,
+    )
+    return _paddle_ocr_instance
+
 
 def scrape_recipe(url: str) -> Dict[str, Any]:
     """Scrape a recipe from the given URL"""
@@ -30,9 +71,9 @@ def scrape_recipe(url: str) -> Dict[str, Any]:
         }
         response = requests.get(url, headers=headers, timeout=10)
         response.raise_for_status()
-        
+
         scraper = scrape_html(html=response.content, org_url=url)
-        
+
         recipe_data = {
             'title': scraper.title(),
             'total_time': scraper.total_time(),
@@ -46,14 +87,269 @@ def scrape_recipe(url: str) -> Dict[str, Any]:
             'confidence': 1.0,
             'source_url': url
         }
-        
+
         recipe_data = {k: v for k, v in recipe_data.items() if v is not None}
-        
+
         return {'success': True, 'data': recipe_data}
-        
+
     except Exception as e:
         logger.error(f"Error scraping recipe from {url}: {str(e)}")
         return {'success': False, 'error': str(e), 'url': url}
+
+
+def preprocess_image_bytes(image_bytes: bytes) -> Image.Image:
+    image = Image.open(BytesIO(image_bytes)).convert('L')
+    image = ImageOps.autocontrast(image)
+    max_width = 1800
+
+    if image.width > max_width:
+        ratio = max_width / float(image.width)
+        image = image.resize((max_width, max(1, int(image.height * ratio))))
+
+    return image
+
+
+def flatten_ocr_lines(ocr_result: Any) -> List[Dict[str, Any]]:
+    lines: List[Dict[str, Any]] = []
+
+    if not ocr_result:
+        return lines
+
+    for page in ocr_result:
+        if not page:
+            continue
+        for item in page:
+            if not item or len(item) < 2:
+                continue
+            box = item[0]
+            text_info = item[1]
+            if not text_info or len(text_info) < 2:
+                continue
+
+            text = str(text_info[0]).strip()
+            confidence = float(text_info[1]) if text_info[1] is not None else 0.0
+
+            if not text:
+                continue
+
+            top = min(point[1] for point in box) if box else 0
+            lines.append({
+                'text': text,
+                'confidence': confidence,
+                'top': top,
+            })
+
+    lines.sort(key=lambda line: line['top'])
+    return lines
+
+
+def find_title(lines: List[str]):
+    return next((
+        line for line in lines
+        if 4 <= len(line) <= 90
+        and not INGREDIENT_HEADER_PATTERN.search(line)
+        and not STEP_HEADER_PATTERN.search(line)
+    ), None)
+
+
+def dedupe_ingredients(ingredients: List[Dict[str, str]]):
+    seen = set()
+    deduped = []
+
+    for ingredient in ingredients:
+        key = f"{ingredient['amount']}|{ingredient['unit']}|{ingredient['name']}".lower()
+        if key in seen:
+            continue
+        seen.add(key)
+        deduped.append(ingredient)
+
+    return deduped
+
+
+def dedupe_steps(steps: List[Dict[str, Any]]):
+    seen = set()
+    deduped = []
+
+    for step in steps:
+        key = step['text'].lower()
+        if key in seen:
+            continue
+        seen.add(key)
+        deduped.append(step)
+
+    return [{**step, 'order': index + 1} for index, step in enumerate(deduped)]
+
+
+def extract_ingredients(lines: List[str]):
+    ingredients: List[Dict[str, str]] = []
+    in_ingredients_section = False
+
+    for line in lines:
+        if INGREDIENT_HEADER_PATTERN.search(line):
+            in_ingredients_section = True
+            continue
+
+        if STEP_HEADER_PATTERN.search(line):
+            in_ingredients_section = False
+
+        if not in_ingredients_section:
+            continue
+
+        match = INGREDIENT_LINE_PATTERN.match(line)
+        if not match:
+            continue
+
+        amount = (match.group(1) or '').strip()
+        unit = (match.group(2) or '').strip()
+        name = (match.group(3) or line).strip()
+
+        if amount or UNIT_HINT_PATTERN.search(line) or len(name) > 2:
+            ingredients.append({
+                'amount': amount,
+                'unit': unit,
+                'name': name,
+            })
+
+    return dedupe_ingredients(ingredients)
+
+
+def extract_steps(lines: List[str]):
+    steps: List[Dict[str, Any]] = []
+    in_steps_section = False
+
+    for line in lines:
+        if STEP_HEADER_PATTERN.search(line):
+            in_steps_section = True
+            continue
+
+        if not in_steps_section:
+            continue
+
+        numbered_match = NUMBERED_STEP_PATTERN.match(line)
+        if numbered_match:
+            steps.append({
+                'order': int(numbered_match.group(1)),
+                'text': numbered_match.group(2).strip(),
+            })
+            continue
+
+        if len(line) >= 30:
+            steps.append({
+                'order': len(steps) + 1,
+                'text': line.strip(),
+            })
+
+    return dedupe_steps(steps)
+
+
+def score_heuristics(lines: List[str], ingredient_count: int, step_count: int, title: str | None):
+    score = 0.2
+
+    if len(lines) >= 6:
+        score += 0.1
+    if title:
+        score += 0.15
+    if ingredient_count >= 3:
+        score += 0.25
+    if step_count >= 2:
+        score += 0.25
+    if any(INGREDIENT_HEADER_PATTERN.search(line) for line in lines):
+        score += 0.025
+    if any(STEP_HEADER_PATTERN.search(line) for line in lines):
+        score += 0.025
+
+    return min(score, 0.95)
+
+
+def extract_recipe_from_image_bytes(image_bytes: bytes) -> Dict[str, Any]:
+    image = preprocess_image_bytes(image_bytes)
+    ocr = get_paddle_ocr()
+    ocr_result = ocr.ocr(image, cls=True)
+    flattened = flatten_ocr_lines(ocr_result)
+
+    text_lines = [line['text'] for line in flattened if line['text']]
+    raw_text = '\n'.join(text_lines).strip()
+
+    if len(raw_text) < 20:
+        return {
+            'success': False,
+            'error': 'Try a clearer, higher-contrast photo of the recipe page',
+        }
+
+    mean_confidence = 0.0
+    if flattened:
+        mean_confidence = sum(line['confidence'] for line in flattened) / len(flattened)
+
+    warnings: List[str] = []
+    errors: List[str] = []
+    flags: List[Dict[str, str]] = []
+
+    title = find_title(text_lines)
+    ingredients = extract_ingredients(text_lines)
+    steps = extract_steps(text_lines)
+    heuristic_confidence = score_heuristics(text_lines, len(ingredients), len(steps), title)
+    confidence = max(0.0, min(0.99, (mean_confidence * 0.65) + (heuristic_confidence * 0.35)))
+
+    if mean_confidence < 0.7:
+        warnings.append('Low OCR confidence. Review the extracted text carefully.')
+        flags.append({
+            'field': 'general',
+            'severity': 'warning',
+            'message': f'OCR confidence is {round(mean_confidence * 100)}%, below the recommended threshold.',
+        })
+
+    if not title or len(title) < 4:
+        warnings.append('Title may be incomplete.')
+        flags.append({
+            'field': 'title',
+            'severity': 'warning',
+            'message': 'Could not confidently identify the recipe title.',
+        })
+
+    if len(ingredients) == 0:
+        warnings.append('No ingredient lines were confidently extracted.')
+        flags.append({
+            'field': 'ingredients',
+            'severity': 'error',
+            'message': 'Ingredients section could not be confidently detected.',
+        })
+
+    if len(steps) == 0:
+        warnings.append('No preparation steps were confidently extracted.')
+        flags.append({
+            'field': 'steps',
+            'severity': 'error',
+            'message': 'Steps section could not be confidently detected.',
+        })
+
+    if ingredients and steps and confidence >= 0.7:
+        flags.append({
+            'field': 'general',
+            'severity': 'info',
+            'message': 'OCR text looks usable for recipe parsing.',
+        })
+
+    if confidence < 0.7:
+        errors.append('Low confidence OCR result. Please review and correct the extracted data.')
+
+    return {
+        'success': True,
+        'data': {
+            'title': title,
+            'description': None,
+            'image_url': None,
+            'source_url': None,
+            'ingredients': ingredients,
+            'steps': steps,
+            'tags': [],
+            'confidence': confidence,
+            'raw_text': raw_text,
+            'errors': errors,
+            'warnings': warnings,
+            'flags': flags,
+            'ocr_engine': 'paddleocr',
+        }
+    }
 
 
 @app.route('/health', methods=['GET'])
@@ -62,7 +358,8 @@ def health_check():
     return jsonify({
         'status': 'healthy',
         'service': 'recipe-scraper',
-        'version': '1.0.0'
+        'version': '1.1.0',
+        'ocr_engine': 'paddleocr' if PaddleOCR is not None else 'unavailable',
     })
 
 
@@ -70,15 +367,15 @@ def health_check():
 def supported_sites():
     """Return list of supported recipe sites"""
     from recipe_scrapers import SCRAPERS
-    
+
     supported = sorted([scraper.host() for scraper in SCRAPERS.values()])
-    
+
     popular = [
         'allrecipes.com', 'foodnetwork.com', 'bonappetit.com',
         'epicurious.com', 'seriouseats.com', 'simplyrecipes.com',
         'tasty.co', 'delish.com', 'food.com', 'cookieandkate.com'
     ]
-    
+
     return jsonify({
         'success': True,
         'data': {
@@ -98,28 +395,61 @@ def scrape():
                 'success': False,
                 'error': 'Content-Type must be application/json'
             }), 400
-        
+
         data = request.get_json()
         url = data.get('url')
-        
+
         if not url:
             return jsonify({'success': False, 'error': 'URL is required'}), 400
-        
+
         if not url.startswith(('http://', 'https://')):
             return jsonify({
                 'success': False,
                 'error': 'Invalid URL format. Must start with http:// or https://'
             }), 400
-        
+
         result = scrape_recipe(url)
-        
+
         if result['success']:
             return jsonify(result), 200
         else:
             return jsonify(result), 422
-            
+
     except Exception as e:
         logger.error(f"Error processing request: {str(e)}")
+        return jsonify({
+            'success': False,
+            'error': f'Internal server error: {str(e)}'
+        }), 500
+
+
+@app.route('/ocr', methods=['POST'])
+def ocr_import():
+    """Extract recipe text and structure from an uploaded image using PaddleOCR"""
+    try:
+        image_file = request.files.get('image')
+
+        if image_file is None:
+            return jsonify({
+                'success': False,
+                'error': 'Image file is required under form field "image"'
+            }), 400
+
+        image_bytes = image_file.read()
+        if not image_bytes:
+            return jsonify({
+                'success': False,
+                'error': 'Uploaded image is empty'
+            }), 400
+
+        result = extract_recipe_from_image_bytes(image_bytes)
+
+        if result['success']:
+            return jsonify(result), 200
+
+        return jsonify(result), 422
+    except Exception as e:
+        logger.exception("Error processing OCR request")
         return jsonify({
             'success': False,
             'error': f'Internal server error: {str(e)}'
@@ -138,14 +468,14 @@ def internal_error(error):
 
 
 if __name__ == '__main__':
-    import os
     port = int(os.environ.get('PORT', 5001))
     logger.info(f"Starting Recipe Scraper API on port {port}")
     logger.info("Available endpoints:")
     logger.info("  GET  /health - Health check")
     logger.info("  GET  /supported-sites - List supported recipe sites")
     logger.info("  POST /scrape - Scrape a recipe from URL")
-    
+    logger.info("  POST /ocr - Extract recipe text from image with PaddleOCR")
+
     app.run(host='0.0.0.0', port=port, debug=False)
 
 # Made with Bob

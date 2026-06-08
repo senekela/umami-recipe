@@ -54,9 +54,14 @@ export type Recipe = {
   import_warnings?: string[]
   import_flags?: ImportFlag[]
   import_reviewed_at?: string | null
+  ocr_engine?: string | null
   published_at: string | null
   created_at: string
   updated_at: string
+}
+
+export type OcrImportResult = DraftSchema & {
+  ocr_engine?: string | null
 }
 
 export type DraftSchema = {

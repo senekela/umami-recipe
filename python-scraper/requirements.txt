@@ -3,3 +3,6 @@ flask==3.0.0
 flask-cors==4.0.0
 gunicorn==21.2.0
 requests==2.31.0
+pillow==10.4.0
+paddleocr==2.7.3
+paddlepaddle==2.6.1

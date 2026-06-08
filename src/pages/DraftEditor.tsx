@@ -1,18 +1,60 @@
-import { useMemo, useState } from 'react'
+import { useMemo, useRef, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useDraft } from '../hooks/useDraft'
-import { supabase } from '../lib/supabase'
+import { supabase, callEdgeFunction } from '../lib/supabase'
 import slugify from 'slugify'
-import { Save, Share2, Trash2, Eye, Check, AlertTriangle, FileText } from 'lucide-react'
-import type { Ingredient, ImportFlagField } from '../lib/types/recipe'
+import { Save, Share2, Trash2, Eye, Check, AlertTriangle, FileText, Camera, RefreshCcw } from 'lucide-react'
+import type { Ingredient, ImportFlagField, OcrImportResult } from '../lib/types/recipe'
 import { Layout } from '../components/Layout'
 import { Alert, AlertDescription, AlertTitle } from '../app/components/ui/alert'
+import { Progress } from '../app/components/ui/progress'
+import heic2any from 'heic2any'
+import { z } from 'zod'
+
+type ImportStage =
+  | 'idle'
+  | 'preparing'
+  | 'ready'
+  | 'uploading'
+  | 'ocr'
+  | 'parsing'
+  | 'saving'
+
+const OPENROUTER_MODELS = ['google/gemma-3-27b-it:free', 'mistralai/mistral-7b-instruct:free']
+const MAX_FILE_SIZE = 500 * 1024
+
+const OpenRouterRecipeSchema = z.object({
+  title: z.string().nullable(),
+  description: z.string().nullable(),
+  ingredients: z.array(z.object({
+    amount: z.string(),
+    unit: z.string(),
+    name: z.string()
+  })),
+  steps: z.array(z.object({
+    order: z.number(),
+    text: z.string()
+  })),
+  tags: z.array(z.string())
+})
+
+type OpenRouterRecipeDraft = z.infer<typeof OpenRouterRecipeSchema>
 
 export function DraftEditor() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
   const { draft, updateField, save, saveStatus, loading } = useDraft(id!)
   const [showShare, setShowShare] = useState(false)
+  const [photoStage, setPhotoStage] = useState<ImportStage>('idle')
+  const [photoProgress, setPhotoProgress] = useState(0)
+  const [selectedFile, setSelectedFile] = useState<File | null>(null)
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null)
+  const [processedBlob, setProcessedBlob] = useState<Blob | null>(null)
+  const [processedFileName, setProcessedFileName] = useState<string>('recipe-photo.jpg')
+  const [photoError, setPhotoError] = useState<string | null>(null)
+  const fileInputRef = useRef<HTMLInputElement | null>(null)
+
+  const openRouterKey = (import.meta as ImportMeta & { env?: Record<string, string> }).env?.NEXT_PUBLIC_OPENROUTER_KEY || ''
 
   const flaggedFields = useMemo(() => {
     const grouped = new Map<ImportFlagField, string[]>()
@@ -30,6 +72,22 @@ export function DraftEditor() {
     return flaggedFields.has(field)
       ? 'w-full px-4 py-2 bg-amber-50 border border-amber-300 rounded-lg focus:ring-2 focus:ring-[#C0622F] focus:border-transparent'
       : 'w-full px-4 py-2 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#C0622F] focus:border-transparent'
+  }
+
+  const resetPhotoFlow = () => {
+    if (previewUrl) {
+      URL.revokeObjectURL(previewUrl)
+    }
+    setSelectedFile(null)
+    setPreviewUrl(null)
+    setProcessedBlob(null)
+    setProcessedFileName('recipe-photo.jpg')
+    setPhotoStage('idle')
+    setPhotoProgress(0)
+    setPhotoError(null)
+    if (fileInputRef.current) {
+      fileInputRef.current.value = ''
+    }
   }
 
   if (loading || !draft) {
@@ -72,6 +130,117 @@ export function DraftEditor() {
 
   const removeStep = (idx: number) => {
     updateField('steps', draft.steps.filter((_, i) => i !== idx))
+  }
+
+  const handlePhotoSelected = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    setPhotoError(null)
+    setPhotoStage('preparing')
+    setPhotoProgress(10)
+
+    try {
+      const processed = await preprocessImage(file)
+      const objectUrl = URL.createObjectURL(processed.blob)
+
+      if (previewUrl) {
+        URL.revokeObjectURL(previewUrl)
+      }
+
+      setSelectedFile(file)
+      setProcessedBlob(processed.blob)
+      setProcessedFileName(processed.fileName)
+      setPreviewUrl(objectUrl)
+      setPhotoStage('ready')
+      setPhotoProgress(100)
+    } catch (err) {
+      setPhotoStage('idle')
+      setPhotoProgress(0)
+      setPhotoError(err instanceof Error ? err.message : 'Failed to prepare photo')
+    }
+  }
+
+  const handleApplyPhotoOcr = async () => {
+    if (!processedBlob) return
+
+    setPhotoError(null)
+
+    try {
+      setPhotoStage('uploading')
+      setPhotoProgress(15)
+
+      const uploadFile = new File([processedBlob], processedFileName, { type: processedBlob.type || 'image/jpeg' })
+      const filePath = `${draft.owner_id}/${Date.now()}-${processedFileName}`
+
+      const { error: uploadError } = await supabase.storage
+        .from('ocr-uploads')
+        .upload(filePath, uploadFile, { upsert: false })
+
+      if (uploadError) {
+        throw new Error(`Upload failed: ${uploadError.message}`)
+      }
+
+      setPhotoStage('ocr')
+      setPhotoProgress(45)
+
+      const { data: ocrData, error: edgeError } = await callEdgeFunction<OcrImportResult>('import-ocr', {
+        storage_path: filePath
+      })
+
+      if (edgeError || !ocrData) {
+        throw new Error(edgeError || 'Failed to process image')
+      }
+
+      setPhotoStage('parsing')
+      setPhotoProgress(68)
+
+      const parsedDraft = await parseRecipeWithOpenRouter(ocrData.raw_text || '', openRouterKey)
+      const mergedDraft = mergeDraftData(ocrData, parsedDraft)
+
+      setPhotoStage('saving')
+      setPhotoProgress(88)
+
+      updateField('title', mergedDraft.title || draft.title)
+      updateField('description', mergedDraft.description ?? draft.description)
+      updateField('ingredients', mergedDraft.ingredients)
+      updateField('steps', mergedDraft.steps)
+      updateField('tags', mergedDraft.tags)
+      updateField('raw_text', mergedDraft.raw_text)
+      updateField('import_confidence', mergedDraft.confidence)
+      updateField('import_errors', mergedDraft.errors)
+      updateField('import_warnings', mergedDraft.warnings ?? [])
+      updateField('import_flags', mergedDraft.flags ?? [])
+      updateField('import_method', 'ocr')
+      updateField('import_source', selectedFile?.name || processedFileName)
+      updateField('ocr_engine', mergedDraft.ocr_engine ?? 'paddleocr')
+
+      await supabase
+        .from('recipes')
+        .update({
+          title: mergedDraft.title || draft.title,
+          description: mergedDraft.description ?? draft.description,
+          ingredients: mergedDraft.ingredients,
+          steps: mergedDraft.steps,
+          tags: mergedDraft.tags,
+          raw_text: mergedDraft.raw_text,
+          import_confidence: mergedDraft.confidence,
+          import_errors: mergedDraft.errors,
+          import_warnings: mergedDraft.warnings ?? [],
+          import_flags: mergedDraft.flags ?? [],
+          import_method: 'ocr',
+          import_source: selectedFile?.name || processedFileName,
+          ocr_engine: mergedDraft.ocr_engine ?? 'paddleocr',
+        })
+        .eq('id', draft.id)
+
+      setPhotoProgress(100)
+      resetPhotoFlow()
+    } catch (err) {
+      setPhotoError(err instanceof Error ? err.message : 'Failed to update recipe from photo')
+      setPhotoStage('ready')
+      setPhotoProgress(0)
+    }
   }
 
   const handlePublish = async () => {
@@ -144,6 +313,75 @@ export function DraftEditor() {
     >
       <div className="max-w-3xl pb-28">
         <div className="space-y-6">
+          <div className="rounded-lg border border-gray-200 bg-white p-4 space-y-4">
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <h2 className="font-medium text-[#1A1A18]">Update from photo</h2>
+                <p className="text-sm text-[#1A1A18]/60">
+                  Upload a new recipe photo to re-run OCR with PaddleOCR and replace the current draft fields.
+                </p>
+              </div>
+              <label className="inline-flex cursor-pointer items-center gap-2 rounded-lg border border-gray-300 px-3 py-2 text-sm hover:bg-gray-50">
+                <Camera size={16} />
+                Choose photo
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*,.heic,.HEIC"
+                  capture="environment"
+                  onChange={handlePhotoSelected}
+                  className="hidden"
+                />
+              </label>
+            </div>
+
+            {photoError && (
+              <Alert variant="destructive" className="border-red-200 bg-red-50 text-red-800">
+                <AlertTriangle className="h-4 w-4" />
+                <AlertTitle>Photo update failed</AlertTitle>
+                <AlertDescription>{photoError}</AlertDescription>
+              </Alert>
+            )}
+
+            {photoStage !== 'idle' && (
+              <div className="space-y-2">
+                <div className="flex items-center justify-between text-sm">
+                  <span className="font-medium text-[#1A1A18]">Photo OCR progress</span>
+                  <span className="capitalize text-[#1A1A18]/60">{photoStage}</span>
+                </div>
+                <Progress value={photoProgress} className="h-2 [&_[data-slot=progress-indicator]]:bg-[#C0622F]" />
+              </div>
+            )}
+
+            {previewUrl && (
+              <div className="space-y-4">
+                <img
+                  src={previewUrl}
+                  alt="Processed recipe preview"
+                  className="w-full rounded-lg border border-gray-200 object-contain max-h-[420px] bg-gray-50"
+                />
+                <div className="flex flex-col sm:flex-row gap-3">
+                  <button
+                    type="button"
+                    onClick={handleApplyPhotoOcr}
+                    disabled={!processedBlob || photoStage === 'uploading' || photoStage === 'ocr' || photoStage === 'parsing' || photoStage === 'saving'}
+                    className="flex-1 px-4 py-3 bg-[#C0622F] text-white rounded-lg hover:bg-[#A0522D] disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    Apply OCR to this draft
+                  </button>
+                  <button
+                    type="button"
+                    onClick={resetPhotoFlow}
+                    className="inline-flex items-center justify-center gap-2 px-4 py-3 border border-gray-300 rounded-lg hover:bg-gray-50"
+                  >
+                    <RefreshCcw size={16} />
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+
           {draft.import_method === 'ocr' && (
             <div className="space-y-4">
               {(draft.import_warnings?.length || 0) > 0 && (
@@ -186,7 +424,7 @@ export function DraftEditor() {
                 <div className="rounded-lg border border-gray-200 bg-white p-4">
                   <h2 className="font-medium text-[#1A1A18] mb-2">Raw OCR text</h2>
                   <p className="text-xs text-[#1A1A18]/60 mb-3">
-                    Confidence: {Math.round((draft.import_confidence || 0) * 100)}%
+                    Confidence: {Math.round((draft.import_confidence || 0) * 100)}%{draft.ocr_engine ? ` • Engine: ${draft.ocr_engine}` : ''}
                   </p>
                   <textarea
                     value={draft.raw_text}
@@ -361,4 +599,227 @@ export function DraftEditor() {
       )}
     </Layout>
   )
+}
+
+async function preprocessImage(file: File): Promise<{ blob: Blob; fileName: string }> {
+  let processFile = file
+  const isHeic = file.type === 'image/heic' || file.name.toLowerCase().endsWith('.heic')
+
+  if (isHeic) {
+    const convertedBlob = await heic2any({
+      blob: file,
+      toType: 'image/png',
+      quality: 0.9
+    })
+
+    const pngBlob = Array.isArray(convertedBlob) ? convertedBlob[0] : convertedBlob
+    processFile = new File([pngBlob], file.name.replace(/\.heic$/i, '.png'), { type: 'image/png' })
+  }
+
+  const image = await loadImage(processFile)
+  const maxWidth = 1600
+  const scale = Math.min(1, maxWidth / image.width)
+  const width = Math.max(1, Math.round(image.width * scale))
+  const height = Math.max(1, Math.round(image.height * scale))
+
+  const canvas = document.createElement('canvas')
+  canvas.width = width
+  canvas.height = height
+
+  const context = canvas.getContext('2d')
+  if (!context) {
+    throw new Error('Image processing is not supported in this browser.')
+  }
+
+  context.drawImage(image, 0, 0, width, height)
+  const imageData = context.getImageData(0, 0, width, height)
+  const { data } = imageData
+
+  let min = 255
+  let max = 0
+
+  for (let index = 0; index < data.length; index += 4) {
+    const grayscale = Math.round((data[index] + data[index + 1] + data[index + 2]) / 3)
+    min = Math.min(min, grayscale)
+    max = Math.max(max, grayscale)
+  }
+
+  const contrastRange = Math.max(1, max - min)
+
+  for (let index = 0; index < data.length; index += 4) {
+    const grayscale = Math.round((data[index] + data[index + 1] + data[index + 2]) / 3)
+    const normalized = Math.max(0, Math.min(255, Math.round(((grayscale - min) / contrastRange) * 255)))
+    data[index] = normalized
+    data[index + 1] = normalized
+    data[index + 2] = normalized
+  }
+
+  context.putImageData(imageData, 0, 0)
+
+  const qualities = [0.85, 0.7, 0.5]
+  let finalBlob: Blob | null = null
+
+  for (const quality of qualities) {
+    const blob = await new Promise<Blob>((resolve, reject) => {
+      canvas.toBlob((canvasBlob) => {
+        if (!canvasBlob) {
+          reject(new Error('Failed to create processed image'))
+          return
+        }
+        resolve(canvasBlob)
+      }, 'image/jpeg', quality)
+    })
+
+    if (blob.size <= MAX_FILE_SIZE) {
+      finalBlob = blob
+      break
+    }
+  }
+
+  if (!finalBlob) {
+    throw new Error('Unable to compress image to required size. Try a smaller or simpler image.')
+  }
+
+  const fileName = file.name.replace(/\.[^.]+$/i, '') + '-processed.jpg'
+  return { blob: finalBlob, fileName }
+}
+
+function loadImage(file: File): Promise<HTMLImageElement> {
+  return new Promise((resolve, reject) => {
+    const objectUrl = URL.createObjectURL(file)
+    const image = new Image()
+
+    image.onload = () => {
+      URL.revokeObjectURL(objectUrl)
+      resolve(image)
+    }
+
+    image.onerror = () => {
+      URL.revokeObjectURL(objectUrl)
+      reject(new Error('Failed to load selected image'))
+    }
+
+    image.src = objectUrl
+  })
+}
+
+async function parseRecipeWithOpenRouter(rawText: string, apiKey: string): Promise<OpenRouterRecipeDraft | null> {
+  if (!rawText.trim() || !apiKey) {
+    return null
+  }
+
+  const systemPrompt = [
+    'You are a recipe extraction expert. Extract the recipe from the OCR text into strict JSON format.',
+    'REQUIRED JSON SCHEMA:',
+    '{',
+    '  "title": string | null,',
+    '  "description": string | null,',
+    '  "ingredients": [{ "amount": string, "unit": string, "name": string }],',
+    '  "steps": [{ "order": number, "text": string }],',
+    '  "tags": string[]',
+    '}',
+    'RULES:',
+    '- Return ONLY valid JSON, no markdown fences or commentary',
+    '- If a field is unknown, use null for title/description and empty arrays for ingredients/steps/tags',
+    '- Ingredients must have amount, unit, and name (use empty strings if not found)',
+    '- Steps must have sequential order numbers starting from 1',
+    '- Extract cooking-related tags'
+  ].join('\n')
+
+  for (const model of OPENROUTER_MODELS) {
+    try {
+      const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${apiKey}`,
+          'HTTP-Referer': window.location.origin,
+          'X-Title': 'Umami Recipe App'
+        },
+        body: JSON.stringify({
+          model,
+          response_format: { type: 'json_object' },
+          messages: [
+            { role: 'system', content: systemPrompt },
+            { role: 'user', content: `Extract the recipe from this OCR text:\n\n${rawText}` }
+          ],
+          temperature: 0.3,
+          max_tokens: 2000
+        })
+      })
+
+      if (!response.ok) {
+        continue
+      }
+
+      const json = await response.json()
+      const content = json?.choices?.[0]?.message?.content
+
+      if (!content || typeof content !== 'string') {
+        continue
+      }
+
+      return OpenRouterRecipeSchema.parse(JSON.parse(content))
+    } catch {
+      continue
+    }
+  }
+
+  return null
+}
+
+function mergeDraftData(baseDraft: OcrImportResult, parsedDraft: OpenRouterRecipeDraft | null): OcrImportResult {
+  const warnings = [...(baseDraft.warnings || [])]
+  const flags = [...(baseDraft.flags || [])]
+  const errors = [...baseDraft.errors]
+
+  if (!parsedDraft) {
+    warnings.push('Structured parsing was unavailable. Review the OCR draft manually.')
+    flags.push({
+      field: 'general',
+      severity: 'warning',
+      message: 'OpenRouter parsing did not return valid structured recipe JSON.',
+    })
+
+    return {
+      ...baseDraft,
+      warnings,
+      flags,
+      errors,
+    }
+  }
+
+  const mergedIngredients = parsedDraft.ingredients.length > 0 ? parsedDraft.ingredients : baseDraft.ingredients
+  const mergedSteps = parsedDraft.steps.length > 0 ? parsedDraft.steps : baseDraft.steps
+  const mergedTitle = parsedDraft.title || baseDraft.title
+  const mergedDescription = parsedDraft.description || baseDraft.description
+  const mergedTags = parsedDraft.tags.length > 0 ? parsedDraft.tags : baseDraft.tags
+
+  if (!parsedDraft.ingredients.length) {
+    warnings.push('AI parsing did not improve ingredients. Using OCR-derived ingredients.')
+  }
+
+  if (!parsedDraft.steps.length) {
+    warnings.push('AI parsing did not improve steps. Using OCR-derived steps.')
+  }
+
+  if (!mergedIngredients.length) {
+    errors.push('Ingredients require manual review before publishing.')
+  }
+
+  if (!mergedSteps.length) {
+    errors.push('Steps require manual review before publishing.')
+  }
+
+  return {
+    ...baseDraft,
+    title: mergedTitle,
+    description: mergedDescription,
+    ingredients: mergedIngredients,
+    steps: mergedSteps,
+    tags: mergedTags,
+    warnings,
+    flags,
+    errors,
+  }
 }

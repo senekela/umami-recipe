@@ -40,21 +40,46 @@ export async function callEdgeFunction<T>(
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': token ? `Bearer ${token}` : '',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
         body: JSON.stringify(body),
       }
     )
 
+    const contentType = response.headers.get('content-type') || ''
+    const isJson = contentType.includes('application/json')
+
     if (!response.ok) {
-      const errorData = await response.json()
-      return { data: null, error: errorData.error || 'Request failed' }
+      let errorMessage = 'Request failed'
+
+      if (isJson) {
+        const errorData = await response.json()
+        errorMessage = errorData.error || errorData.message || errorMessage
+      } else {
+        const errorText = await response.text()
+        errorMessage = errorText || errorMessage
+      }
+
+      return { data: null, error: errorMessage }
+    }
+
+    if (!isJson) {
+      const text = await response.text()
+      return { data: null, error: text || 'Edge function returned a non-JSON response' }
     }
 
     const data = await response.json()
     return { data, error: null }
   } catch (err) {
     console.error('Edge function error:', err)
-    return { data: null, error: 'Unexpected error. Please try again.' }
+
+    if (err instanceof TypeError && err.message.toLowerCase().includes('fetch')) {
+      return {
+        data: null,
+        error: 'Network error reaching the import service. Verify the Supabase function is deployed and reachable, then try again.'
+      }
+    }
+
+    return { data: null, error: err instanceof Error ? err.message : 'Unexpected error. Please try again.' }
   }
 }
