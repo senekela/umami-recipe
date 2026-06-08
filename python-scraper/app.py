@@ -32,12 +32,23 @@ CORS(app)
 app.config['JSON_SORT_KEYS'] = False
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024
 
-INGREDIENT_HEADER_PATTERN = re.compile(r'\bingredients?\b', re.IGNORECASE)
-STEP_HEADER_PATTERN = re.compile(r'\b(directions?|instructions?|method|steps?)\b', re.IGNORECASE)
-INGREDIENT_LINE_PATTERN = re.compile(r'^([\d¼½¾⅓⅔⅛⅜⅝⅞\/\.\s]+)?\s*([a-zA-Z]+)?\s+(.+)$')
+# Support both English and French patterns
+INGREDIENT_HEADER_PATTERN = re.compile(
+    r'\b(ingredients?|ingrédients?)\b',
+    re.IGNORECASE
+)
+STEP_HEADER_PATTERN = re.compile(
+    r'\b(directions?|instructions?|method|steps?|préparation|étapes?|recette)\b',
+    re.IGNORECASE
+)
+INGREDIENT_LINE_PATTERN = re.compile(r'^([\d¼½¾⅓⅔⅛⅜⅝⅞\/\.\s]+)?\s*([a-zA-Zàâäéèêëïîôùûüÿç]+)?\s+(.+)$')
 NUMBERED_STEP_PATTERN = re.compile(r'^(\d+)[\.\):]\s*(.+)$')
 UNIT_HINT_PATTERN = re.compile(
-    r'\b(cup|cups|tbsp|tablespoon|tablespoons|tsp|teaspoon|teaspoons|oz|ounce|ounces|lb|lbs|pound|pounds|g|gram|grams|kg|ml|l|pinch|clove|cloves)\b',
+    r'\b(cup|cups|tbsp|tablespoon|tablespoons|tsp|teaspoon|teaspoons|oz|ounce|ounces|lb|lbs|pound|pounds|'
+    r'g|gram|grams|kg|ml|l|cl|dl|pinch|clove|cloves|'
+    r'cuillère|cuillères|c\.à\.s|c\.à\.c|càs|càc|cs|cc|'
+    r'gramme|grammes|litre|litres|millilitre|millilitres|'
+    r'pincée|gousse|gousses|tranche|tranches)\b',
     re.IGNORECASE,
 )
 
@@ -113,13 +124,15 @@ def preprocess_image_bytes(image_bytes: bytes) -> Image.Image:
 
 
 def extract_text_with_tesseract(image: Image.Image) -> str:
-    """Extract text from image using Tesseract OCR"""
+    """Extract text from image using Tesseract OCR with French language support"""
     check_tesseract_available()
     
     # Use pytesseract to extract text
     # PSM 6 = Assume a single uniform block of text
+    # Support both French and English (fra+eng)
+    lang = os.environ.get('TESSERACT_LANG', 'fra+eng')
     custom_config = r'--oem 3 --psm 6'
-    text = pytesseract.image_to_string(image, config=custom_config)
+    text = pytesseract.image_to_string(image, lang=lang, config=custom_config)
     
     return text.strip()
 
