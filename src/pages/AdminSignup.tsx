@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
 import { supabase } from '../lib/supabase'
+import { WebGLBackground } from '../components/WebGLBackground'
 
 export function AdminSignup() {
   const [email, setEmail] = useState('')
@@ -66,16 +67,17 @@ export function AdminSignup() {
   }
 
   return (
-    <div className="min-h-screen bg-[#FAFAF7] flex items-center justify-center p-4">
-      <div className="bg-white rounded-2xl shadow-lg p-8 max-w-md w-full">
-        <h1 className="font-serif text-3xl text-[#1A1A18] text-center mb-2">Create Admin Account</h1>
-        <p className="text-center text-[#1A1A18]/60 mb-8">
+    <div className="min-h-screen bg-[#1C322D] flex items-center justify-center p-4 relative">
+      <WebGLBackground />
+      <div className="bg-[#F8F3EE] rounded-none shadow-[rgba(28,50,45,0.15)_0px_40px_80px_-20px] p-12 max-w-md w-full relative z-10">
+        <h1 className="font-display text-4xl text-[#1C322D] text-center mb-3 font-normal">Create Admin Account</h1>
+        <p className="text-center text-[#A9B8B5] mb-10 text-base font-light">
           Set up your admin account with email and password
         </p>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-6">
           <div>
-            <label htmlFor="email" className="block text-sm font-medium text-[#1A1A18] mb-2">
+            <label htmlFor="email" className="block text-[11px] font-semibold text-[#A9B8B5] mb-3 uppercase tracking-[1.65px]">
               Email address
             </label>
             <input
@@ -85,12 +87,12 @@ export function AdminSignup() {
               onChange={(e) => setEmail(e.target.value)}
               required
               placeholder="admin@example.com"
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#C0622F] focus:border-transparent"
+              className="w-full px-4 py-3 border border-[#485E59]/30 rounded-full focus:ring-2 focus:ring-[#1C322D] focus:border-[#1C322D] bg-white text-[#1C322D] placeholder:text-[#A9B8B5]"
             />
           </div>
 
           <div>
-            <label htmlFor="password" className="block text-sm font-medium text-[#1A1A18] mb-2">
+            <label htmlFor="password" className="block text-[11px] font-semibold text-[#A9B8B5] mb-3 uppercase tracking-[1.65px]">
               Password
             </label>
             <input
@@ -101,15 +103,15 @@ export function AdminSignup() {
               required
               placeholder="••••••••"
               minLength={8}
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#C0622F] focus:border-transparent"
+              className="w-full px-4 py-3 border border-[#485E59]/30 rounded-full focus:ring-2 focus:ring-[#1C322D] focus:border-[#1C322D] bg-white text-[#1C322D] placeholder:text-[#A9B8B5]"
             />
-            <p className="text-xs text-[#1A1A18]/60 mt-1">
+            <p className="text-xs text-[#A9B8B5] mt-2 font-light">
               Must be at least 8 characters long
             </p>
           </div>
 
           <div>
-            <label htmlFor="confirmPassword" className="block text-sm font-medium text-[#1A1A18] mb-2">
+            <label htmlFor="confirmPassword" className="block text-[11px] font-semibold text-[#A9B8B5] mb-3 uppercase tracking-[1.65px]">
               Confirm Password
             </label>
             <input
@@ -120,12 +122,12 @@ export function AdminSignup() {
               required
               placeholder="••••••••"
               minLength={8}
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#C0622F] focus:border-transparent"
+              className="w-full px-4 py-3 border border-[#485E59]/30 rounded-full focus:ring-2 focus:ring-[#1C322D] focus:border-[#1C322D] bg-white text-[#1C322D] placeholder:text-[#A9B8B5]"
             />
           </div>
 
           {error && (
-            <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
+            <div className="p-4 bg-red-50 border border-red-200 rounded-none text-red-700 text-sm">
               {error}
             </div>
           )}
@@ -133,16 +135,16 @@ export function AdminSignup() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-[#C0622F] text-white py-3 rounded-lg font-medium hover:bg-[#A0522D] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full bg-[#1C322D] text-[#F8F3EE] py-3 rounded-full font-semibold text-[11px] uppercase tracking-[1.65px] hover:bg-[#1C322D]/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {loading ? 'Creating account...' : 'Create Admin Account'}
           </button>
 
-          <div className="text-center pt-4 border-t border-gray-200">
+          <div className="text-center pt-6 border-t border-[#485E59]/20">
             <button
               type="button"
               onClick={() => navigate('/login')}
-              className="text-sm text-[#C0622F] hover:underline"
+              className="text-sm text-[#EBB552] hover:underline font-medium"
             >
               Already have an account? Sign in
             </button>

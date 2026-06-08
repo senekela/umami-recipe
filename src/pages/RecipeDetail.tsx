@@ -54,8 +54,8 @@ export function RecipeDetail() {
       <Layout showBack title="Loading…" contained={false}>
         <div className="flex items-center justify-center py-24">
           <div className="text-center">
-            <div className="w-8 h-8 border-4 border-[#C0622F] border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-            <p className="text-[#1A1A18]/60">Loading recipe…</p>
+            <div className="w-8 h-8 border-4 border-[#EBB552] border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+            <p className="text-[#A9B8B5]">Loading recipe…</p>
           </div>
         </div>
       </Layout>
@@ -66,8 +66,8 @@ export function RecipeDetail() {
     return (
       <Layout showBack title="Not found" contained={false}>
         <div className="text-center py-24">
-          <p className="text-[#1A1A18]/60 mb-4">Recipe not found.</p>
-          <button onClick={() => navigate('/')} className="text-[#C0622F] hover:underline">
+          <p className="text-[#A9B8B5] mb-4">Recipe not found.</p>
+          <button onClick={() => navigate('/')} className="text-[#EBB552] hover:underline font-medium">
             Go to home
           </button>
         </div>
@@ -79,7 +79,7 @@ export function RecipeDetail() {
 
   return (
     <Layout showBack title={recipe.title} contained={false}>
-      <article className="bg-white">
+      <article className="bg-[#F8F3EE]">
         {recipe.image_url && (
           <img
             src={recipe.image_url}
@@ -88,16 +88,16 @@ export function RecipeDetail() {
           />
         )}
 
-        <div className="max-w-3xl mx-auto px-4 py-8">
-          <h1 className="font-serif text-3xl md:text-4xl text-[#1A1A18] mb-4">{recipe.title}</h1>
+        <div className="max-w-3xl mx-auto px-4 py-12">
+          <h1 className="font-display text-4xl md:text-5xl text-[#1C322D] mb-4 font-normal">{recipe.title}</h1>
           {recipe.description && (
-            <p className="text-lg text-[#1A1A18]/80 mb-6">{recipe.description}</p>
+            <p className="text-base text-[#1C322D]/80 mb-8 font-light leading-relaxed">{recipe.description}</p>
           )}
 
           {recipe.tags.length > 0 && (
-            <div className="flex flex-wrap gap-2 mb-6">
+            <div className="flex flex-wrap gap-2 mb-8">
               {recipe.tags.map(tag => (
-                <span key={tag} className="text-sm px-3 py-1 bg-[#C0622F]/10 text-[#C0622F] rounded-full">
+                <span key={tag} className="text-[11px] px-3 py-1.5 bg-[#A2C2B3]/20 text-[#1C322D] rounded-full font-semibold uppercase tracking-wide">
                   {tag}
                 </span>
               ))}
@@ -109,7 +109,7 @@ export function RecipeDetail() {
               href={recipe.source_url}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 text-[#C0622F] hover:underline mb-8"
+              className="inline-flex items-center gap-2 text-[#EBB552] hover:underline mb-8 font-medium"
             >
               <Globe size={16} />
               View original source
@@ -120,14 +120,14 @@ export function RecipeDetail() {
             <div className="flex flex-wrap gap-3 mb-8">
               <button
                 onClick={() => navigate(`/drafts/${recipe.id}`)}
-                className="flex items-center gap-2 px-4 py-2 bg-[#C0622F] text-white rounded-lg hover:bg-[#A0522D]"
+                className="flex items-center gap-2 px-4 py-3 bg-[#1C322D] text-[#F8F3EE] rounded-full hover:bg-[#1C322D]/90 text-[11px] font-semibold uppercase tracking-[1.65px]"
               >
                 <Edit size={16} />
                 Edit
               </button>
               <button
                 onClick={unpublish}
-                className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
+                className="flex items-center gap-2 px-4 py-3 border border-[#485E59]/30 rounded-full hover:bg-[#1C322D]/5 text-[#1C322D] text-[11px] font-semibold uppercase tracking-[1.65px]"
               >
                 <EyeOff size={16} />
                 Unpublish
@@ -135,14 +135,14 @@ export function RecipeDetail() {
             </div>
           )}
 
-          <div className="grid md:grid-cols-2 gap-8 pt-4 border-t border-gray-100">
+          <div className="grid md:grid-cols-2 gap-12 pt-8 border-t border-[#485E59]/20">
             <div>
-              <h2 className="font-serif text-2xl text-[#1A1A18] mb-4">Ingredients</h2>
+              <h2 className="font-display text-3xl text-[#1C322D] mb-6 font-normal">Ingredients</h2>
               <IngredientList ingredients={recipe.ingredients} />
             </div>
 
             <div>
-              <h2 className="font-serif text-2xl text-[#1A1A18] mb-4">Steps</h2>
+              <h2 className="font-display text-3xl text-[#1C322D] mb-6 font-normal">Steps</h2>
               <StepList steps={recipe.steps} />
             </div>
           </div>

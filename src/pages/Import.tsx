@@ -100,7 +100,16 @@ export function Import() {
       const { data, error: edgeError } = await callEdgeFunction<DraftSchema>('import-url', { url })
 
       if (edgeError) {
-        setError(edgeError)
+        // Provide specific error messages based on error type
+        let errorMessage = edgeError
+        if (edgeError.includes('network') || edgeError.includes('fetch')) {
+          errorMessage = 'Network error. Please check your connection and try again.'
+        } else if (edgeError.includes('timeout')) {
+          errorMessage = 'Request timed out. The website may be slow. Try again or use a different recipe.'
+        } else if (edgeError.includes('parse') || edgeError.includes('extract')) {
+          errorMessage = 'Could not extract recipe from this page. Try a different URL or import via photo.'
+        }
+        setError(errorMessage)
         setLoading(false)
         return
       }
@@ -150,7 +159,8 @@ export function Import() {
         }, 800)
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to import recipe')
+      const errorMessage = err instanceof Error ? err.message : 'Failed to import recipe'
+      setError(errorMessage)
     } finally {
       setLoading(false)
     }
@@ -351,7 +361,21 @@ export function Import() {
           <Alert variant="destructive" className="mb-4 border-red-200 bg-red-50 text-red-800">
             <AlertTriangle className="h-4 w-4" />
             <AlertTitle>Import failed</AlertTitle>
-            <AlertDescription>{error}</AlertDescription>
+            <AlertDescription>
+              <p className="mb-3">{error}</p>
+              <button
+                onClick={() => {
+                  setError(null)
+                  if (tab === 'url' && url) {
+                    handleUrlImport()
+                  }
+                }}
+                className="inline-flex items-center gap-2 px-3 py-1.5 bg-red-700 text-white rounded-lg hover:bg-red-800 text-sm font-medium"
+              >
+                <RefreshCcw size={14} />
+                Try Again
+              </button>
+            </AlertDescription>
           </Alert>
         )}
 

@@ -2,43 +2,96 @@
 
 :root {
   --font-size: 16px;
-  --background: #FAFAF7;
-  --foreground: #1A1A18;
-  --card: #ffffff;
-  --card-foreground: #1A1A18;
-  --popover: #ffffff;
-  --popover-foreground: #1A1A18;
-  --primary: #C0622F;
-  --primary-foreground: #ffffff;
-  --secondary: #f5f5f2;
-  --secondary-foreground: #1A1A18;
-  --muted: #ececf0;
-  --muted-foreground: #717182;
-  --accent: #C0622F;
-  --accent-foreground: #ffffff;
+  
+  /* Mindful Moments Color Palette */
+  --background: #1C322D;
+  --foreground: #F8F3EE;
+  --card: #F8F3EE;
+  --card-foreground: #1C322D;
+  --card-secondary: #F1CDBE;
+  --card-tertiary: #A2C2B3;
+  --popover: #FFFFFF;
+  --popover-foreground: #1C322D;
+  --primary: #1C322D;
+  --primary-foreground: #F8F3EE;
+  --secondary: #A2C2B3;
+  --secondary-foreground: #1C322D;
+  --tertiary: #EBB552;
+  --muted: #A9B8B5;
+  --muted-foreground: #A9B8B5;
+  --accent: #1C322D;
+  --accent-foreground: #F8F3EE;
   --destructive: #d4183d;
   --destructive-foreground: #ffffff;
-  --border: rgba(0, 0, 0, 0.1);
+  --border: #485E59;
   --input: transparent;
   --input-background: #ffffff;
-  --switch-background: #cbced4;
-  --font-weight-medium: 500;
+  --switch-background: #A9B8B5;
+  --surface: #FFFFFF;
+  --text-primary: #1C322D;
+  --text-secondary: #4b5f5b;
+  
+  /* Typography */
+  --font-display: 'Playfair Display', Georgia, serif;
+  --font-body: 'Inter', system-ui, -apple-system, sans-serif;
+  --font-weight-light: 300;
   --font-weight-normal: 400;
-  --ring: #C0622F;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
+  
+  /* Display Typography */
+  --display-lg-size: 48px;
+  --display-lg-weight: 400;
+  --display-lg-line-height: 48px;
+  --display-lg-letter-spacing: -0.02em;
+  
+  /* Body Typography */
+  --body-md-size: 15px;
+  --body-md-weight: 300;
+  --body-md-line-height: 24.3833px;
+  
+  /* Label Typography */
+  --label-md-size: 11px;
+  --label-md-weight: 600;
+  --label-md-line-height: 16.5px;
+  --label-md-letter-spacing: 1.65px;
+  
+  /* Spacing System (8px base) */
+  --spacing-base: 8px;
+  --spacing-sm: 1px;
+  --spacing-md: 2px;
+  --spacing-lg: 8px;
+  --spacing-xl: 12px;
+  --spacing-gap: 6px;
+  --spacing-card-padding: 40px;
+  --spacing-section-padding: 40px;
+  
+  /* Border Radius */
+  --radius-md: 0px;
+  --radius-lg: 12px;
+  --radius-xl: 48px;
+  --radius-full: 9999px;
+  
+  /* Shadows */
+  --shadow-elevated: rgba(28, 50, 45, 0.15) 0px 40px 80px -20px;
+  --shadow-inset: rgba(0, 0, 0, 0.05) 0px 2px 4px 0px inset;
+  --shadow-subtle: rgba(0, 0, 0, 0.05) 0px 1px 2px 0px;
+  
+  --ring: #1C322D;
   --chart-1: oklch(0.646 0.222 41.116);
   --chart-2: oklch(0.6 0.118 184.704);
   --chart-3: oklch(0.398 0.07 227.392);
   --chart-4: oklch(0.828 0.189 84.429);
   --chart-5: oklch(0.769 0.188 70.08);
-  --radius: 0.5rem;
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: #030213;
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.97 0 0);
-  --sidebar-accent-foreground: oklch(0.205 0 0);
-  --sidebar-border: oklch(0.922 0 0);
-  --sidebar-ring: oklch(0.708 0 0);
+  --radius: 0px;
+  --sidebar: #FFFFFF;
+  --sidebar-foreground: #1C322D;
+  --sidebar-primary: #1C322D;
+  --sidebar-primary-foreground: #F8F3EE;
+  --sidebar-accent: #A2C2B3;
+  --sidebar-accent-foreground: #1C322D;
+  --sidebar-border: #485E59;
+  --sidebar-ring: #1C322D;
 }
 
 .dark {
@@ -126,11 +179,15 @@
 
   body {
     @apply bg-background text-foreground;
-    font-family: 'DM Sans', system-ui, -apple-system, sans-serif;
+    font-family: var(--font-body);
   }
 
   .font-serif {
-    font-family: 'Lora', Georgia, serif;
+    font-family: var(--font-display);
+  }
+  
+  .font-display {
+    font-family: var(--font-display);
   }
 
   /**
@@ -143,49 +200,58 @@
   }
 
   h1, h2, h3, h4 {
-    font-family: 'Lora', Georgia, serif;
+    font-family: var(--font-display);
   }
 
   h1 {
-    font-size: var(--text-2xl);
-    font-weight: var(--font-weight-medium);
-    line-height: 1.5;
+    font-size: var(--display-lg-size);
+    font-weight: var(--display-lg-weight);
+    line-height: var(--display-lg-line-height);
+    letter-spacing: var(--display-lg-letter-spacing);
   }
 
   h2 {
-    font-size: var(--text-xl);
-    font-weight: var(--font-weight-medium);
-    line-height: 1.5;
+    font-size: 32px;
+    font-weight: var(--font-weight-normal);
+    line-height: 1.3;
   }
 
   h3 {
-    font-size: var(--text-lg);
-    font-weight: var(--font-weight-medium);
-    line-height: 1.5;
+    font-size: 24px;
+    font-weight: var(--font-weight-normal);
+    line-height: 1.4;
   }
 
   h4 {
-    font-size: var(--text-base);
+    font-size: 18px;
     font-weight: var(--font-weight-medium);
     line-height: 1.5;
   }
 
   label {
-    font-size: var(--text-base);
-    font-weight: var(--font-weight-medium);
-    line-height: 1.5;
+    font-size: var(--label-md-size);
+    font-weight: var(--label-md-weight);
+    line-height: var(--label-md-line-height);
+    letter-spacing: var(--label-md-letter-spacing);
+    text-transform: uppercase;
   }
 
   button {
-    font-size: var(--text-base);
+    font-size: var(--body-md-size);
     font-weight: var(--font-weight-medium);
     line-height: 1.5;
   }
 
   input, textarea {
-    font-size: var(--text-base);
-    font-weight: var(--font-weight-normal);
-    line-height: 1.5;
+    font-size: var(--body-md-size);
+    font-weight: var(--body-md-weight);
+    line-height: var(--body-md-line-height);
+  }
+  
+  p {
+    font-size: var(--body-md-size);
+    font-weight: var(--body-md-weight);
+    line-height: var(--body-md-line-height);
   }
 
   .ingredient input[type="checkbox"]:checked + label {

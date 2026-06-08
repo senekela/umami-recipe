@@ -51,7 +51,7 @@ export function MyRecipes() {
         <div className="flex items-center gap-2">
           <button
             onClick={() => navigate('/profile')}
-            className="flex items-center gap-2 px-3 py-2 rounded-md text-sm text-[#1A1A18]/60 hover:text-[#1A1A18] hover:bg-gray-100"
+            className="flex items-center gap-2 px-3 py-2 rounded-full text-sm text-[#A9B8B5] hover:text-[#1C322D] hover:bg-[#1C322D]/5"
             aria-label="Edit profile"
           >
             <Settings size={18} />
@@ -59,7 +59,7 @@ export function MyRecipes() {
           </button>
           <button
             onClick={handleLogout}
-            className="flex items-center gap-2 px-3 py-2 rounded-md text-sm text-[#1A1A18]/60 hover:text-[#1A1A18] hover:bg-gray-100"
+            className="flex items-center gap-2 px-3 py-2 rounded-full text-sm text-[#A9B8B5] hover:text-[#1C322D] hover:bg-[#1C322D]/5"
           >
             <LogOut size={18} />
             <span className="hidden sm:inline">Sign out</span>
@@ -67,23 +67,23 @@ export function MyRecipes() {
         </div>
       }
       belowHeader={
-        <div className="flex gap-6 border-b border-gray-200 -mb-px">
+        <div className="flex gap-6 border-b border-[#485E59]/20 -mb-px">
           <button
             onClick={() => setTab('published')}
-            className={`pb-3 px-1 font-medium transition-colors ${
+            className={`pb-3 px-1 font-semibold text-[11px] uppercase tracking-[1.65px] transition-colors ${
               tab === 'published'
-                ? 'text-[#C0622F] border-b-2 border-[#C0622F]'
-                : 'text-[#1A1A18]/60 hover:text-[#1A1A18]'
+                ? 'text-[#1C322D] border-b-2 border-[#1C322D]'
+                : 'text-[#A9B8B5] hover:text-[#1C322D]'
             }`}
           >
             Published
           </button>
           <button
             onClick={() => setTab('drafts')}
-            className={`pb-3 px-1 font-medium transition-colors ${
+            className={`pb-3 px-1 font-semibold text-[11px] uppercase tracking-[1.65px] transition-colors ${
               tab === 'drafts'
-                ? 'text-[#C0622F] border-b-2 border-[#C0622F]'
-                : 'text-[#1A1A18]/60 hover:text-[#1A1A18]'
+                ? 'text-[#1C322D] border-b-2 border-[#1C322D]'
+                : 'text-[#A9B8B5] hover:text-[#1C322D]'
             }`}
           >
             Drafts
@@ -92,9 +92,9 @@ export function MyRecipes() {
       }
     >
       {/* User Profile Header */}
-      <div className="bg-white rounded-2xl shadow-sm p-6 mb-6">
-        <div className="flex items-center gap-4">
-          <div className="w-16 h-16 rounded-full overflow-hidden bg-gray-100 flex items-center justify-center flex-shrink-0">
+      <div className="bg-[#F8F3EE] rounded-none shadow-[rgba(28,50,45,0.15)_0px_40px_80px_-20px] p-10 mb-8">
+        <div className="flex items-center gap-6">
+          <div className="w-20 h-20 rounded-full overflow-hidden bg-[#A9B8B5]/10 flex items-center justify-center flex-shrink-0">
             {profile?.avatar_url ? (
               <img
                 src={profile.avatar_url}
@@ -102,18 +102,18 @@ export function MyRecipes() {
                 className="w-full h-full object-cover"
               />
             ) : (
-              <UserIcon className="w-8 h-8 text-gray-400" />
+              <UserIcon className="w-10 h-10 text-[#A9B8B5]" />
             )}
           </div>
           <div className="flex-1 min-w-0">
-            <h2 className="font-serif text-2xl text-[#1A1A18] truncate">
+            <h2 className="font-display text-3xl text-[#1C322D] truncate font-normal">
               {profile?.nickname || user?.email?.split('@')[0] || 'User'}
             </h2>
-            <p className="text-sm text-[#1A1A18]/60 truncate">{user?.email}</p>
+            <p className="text-sm text-[#A9B8B5] truncate font-light">{user?.email}</p>
           </div>
           <button
             onClick={() => navigate('/profile')}
-            className="px-4 py-2 text-sm text-[#C0622F] hover:bg-[#C0622F]/10 rounded-lg transition-colors"
+            className="px-4 py-3 text-[11px] font-semibold uppercase tracking-[1.65px] text-[#1C322D] hover:bg-[#1C322D]/5 rounded-full transition-colors border border-[#485E59]/30"
           >
             Edit Profile
           </button>
@@ -123,23 +123,23 @@ export function MyRecipes() {
       {loading ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
           {[1, 2].map(i => (
-            <div key={i} className="bg-white rounded-lg shadow-sm overflow-hidden animate-pulse">
-              <div className="aspect-video bg-gray-200"></div>
-              <div className="p-4">
-                <div className="h-6 bg-gray-200 rounded mb-2"></div>
-                <div className="h-4 bg-gray-200 rounded w-2/3"></div>
+            <div key={i} className="bg-[#F8F3EE] rounded-none overflow-hidden animate-pulse">
+              <div className="aspect-video bg-[#A9B8B5]/20"></div>
+              <div className="p-10">
+                <div className="h-6 bg-[#A9B8B5]/20 rounded mb-2"></div>
+                <div className="h-4 bg-[#A9B8B5]/20 rounded w-2/3"></div>
               </div>
             </div>
           ))}
         </div>
       ) : recipes.length === 0 ? (
         <div className="text-center py-16">
-          <p className="text-[#1A1A18]/60 mb-4">
+          <p className="text-[#A9B8B5] mb-4 text-base">
             {tab === 'published' ? 'No published recipes yet.' : 'No drafts yet.'}
           </p>
           <button
             onClick={() => navigate('/import')}
-            className="text-[#C0622F] hover:underline"
+            className="text-[#EBB552] hover:underline font-medium"
           >
             Import your first recipe →
           </button>

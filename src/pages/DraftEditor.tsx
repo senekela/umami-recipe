@@ -56,6 +56,32 @@ export function DraftEditor() {
 
   const openRouterKey = (import.meta as ImportMeta & { env?: Record<string, string> }).env?.NEXT_PUBLIC_OPENROUTER_KEY || ''
 
+  // Validation state
+  const validation = useMemo(() => {
+    const hasTitle = !!draft?.title?.trim()
+    const hasIngredients = (draft?.ingredients?.length || 0) > 0
+    const hasSteps = (draft?.steps?.length || 0) > 0
+    const hasValidIngredients = draft?.ingredients?.every(ing => ing.name.trim())
+    const hasValidSteps = draft?.steps?.every(step => step.text.trim())
+    
+    const requiredFields = [
+      { field: 'title', valid: hasTitle, label: 'Title' },
+      { field: 'ingredients', valid: hasIngredients && hasValidIngredients, label: 'At least one ingredient' },
+      { field: 'steps', valid: hasSteps && hasValidSteps, label: 'At least one step' },
+    ]
+    
+    const completedCount = requiredFields.filter(f => f.valid).length
+    const isReadyToPublish = completedCount === requiredFields.length
+    
+    return {
+      requiredFields,
+      completedCount,
+      totalCount: requiredFields.length,
+      isReadyToPublish,
+      percentage: Math.round((completedCount / requiredFields.length) * 100)
+    }
+  }, [draft])
+
   const flaggedFields = useMemo(() => {
     const grouped = new Map<ImportFlagField, string[]>()
 
@@ -244,9 +270,8 @@ export function DraftEditor() {
   }
 
   const handlePublish = async () => {
-    if (!draft.title || draft.ingredients.length === 0 || draft.steps.length === 0) {
-      alert('Please add a title, at least one ingredient, and at least one step before publishing.')
-      return
+    if (!validation.isReadyToPublish) {
+      return // Button should be disabled, but double-check
     }
 
     const reviewedAt = new Date().toISOString()
@@ -312,6 +337,47 @@ export function DraftEditor() {
       }
     >
       <div className="max-w-3xl pb-28">
+        {/* Validation Progress Card */}
+        <div className={`mb-6 rounded-lg border p-4 ${
+          validation.isReadyToPublish
+            ? 'bg-green-50 border-green-200'
+            : 'bg-amber-50 border-amber-200'
+        }`}>
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-2">
+              {validation.isReadyToPublish ? (
+                <Check className="w-5 h-5 text-green-600" />
+              ) : (
+                <AlertTriangle className="w-5 h-5 text-amber-600" />
+              )}
+              <h3 className={`font-medium ${
+                validation.isReadyToPublish ? 'text-green-900' : 'text-amber-900'
+              }`}>
+                {validation.isReadyToPublish ? 'Ready to publish!' : 'Complete required fields'}
+              </h3>
+            </div>
+            <span className={`text-sm font-semibold ${
+              validation.isReadyToPublish ? 'text-green-700' : 'text-amber-700'
+            }`}>
+              {validation.completedCount}/{validation.totalCount}
+            </span>
+          </div>
+          <div className="space-y-2">
+            {validation.requiredFields.map(field => (
+              <div key={field.field} className="flex items-center gap-2 text-sm">
+                {field.valid ? (
+                  <Check className="w-4 h-4 text-green-600 flex-shrink-0" />
+                ) : (
+                  <div className="w-4 h-4 rounded-full border-2 border-amber-400 flex-shrink-0" />
+                )}
+                <span className={field.valid ? 'text-green-800' : 'text-amber-800'}>
+                  {field.label}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+
         <div className="space-y-6">
           <div className="rounded-lg border border-gray-200 bg-white p-4 space-y-4">
             <div className="flex items-start justify-between gap-4">
@@ -565,9 +631,14 @@ export function DraftEditor() {
 
       <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 p-4 pb-[max(env(safe-area-inset-bottom),1rem)] z-30">
         <div className="max-w-3xl mx-auto flex gap-3">
-          <button onClick={handlePublish} className="flex-1 bg-[#C0622F] text-white py-3 rounded-lg font-medium hover:bg-[#A0522D] flex items-center justify-center gap-2">
+          <button
+            onClick={handlePublish}
+            disabled={!validation.isReadyToPublish}
+            className="flex-1 bg-[#C0622F] text-white py-3 rounded-lg font-medium hover:bg-[#A0522D] flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+            title={!validation.isReadyToPublish ? 'Complete all required fields to publish' : 'Publish recipe'}
+          >
             <Eye size={20} />
-            Publish
+            {validation.isReadyToPublish ? 'Publish' : `Publish (${validation.completedCount}/${validation.totalCount})`}
           </button>
           <button onClick={generateShareLink} aria-label="Share draft" className="px-4 py-3 border border-gray-300 rounded-lg hover:bg-gray-50">
             <Share2 size={20} />
