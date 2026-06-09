@@ -17,7 +17,7 @@ export function RecipeCard({ recipe }: { recipe: Recipe }) {
 
   return (
     <Link to={`/recipes/${recipe.slug}`} className="block group">
-      <div className="bg-background rounded-md overflow-hidden border border-border/20 hover:shadow-elevated hover:-translate-y-1 transition-all duration-300">
+      <div className="bg-background rounded-md overflow-hidden border border-border/20 hover:border-tertiary hover:shadow-elevated hover:-translate-y-1 transition-all duration-300">
         {recipe.image_url ? (
           <div className="aspect-video bg-muted/10 rounded-t-md overflow-hidden">
             <img
