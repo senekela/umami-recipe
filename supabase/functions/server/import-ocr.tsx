@@ -33,16 +33,21 @@ export async function handleOcrImport(storagePath: string, supabaseUrl: string, 
     const pythonApiUrl = Deno.env.get('PYTHON_SCRAPER_URL') || 'https://umami-recipe.onrender.com';
     const supabase = createClient(supabaseUrl, serviceRoleKey);
 
+    console.log('Attempting to download file from storage:', storagePath);
+
     const { data: fileData, error: downloadError } = await supabase.storage
       .from('ocr-uploads')
       .download(storagePath);
 
     if (downloadError || !fileData) {
+      console.error('Storage download error:', downloadError);
       return {
-        error: 'Failed to download image from storage',
+        error: `Failed to download image from storage: ${downloadError?.message || 'Unknown error'}. Path: ${storagePath}`,
         partial: null
       };
     }
+
+    console.log('File downloaded successfully, size:', fileData.size);
 
     const formData = new FormData();
     formData.append('image', fileData, 'recipe-photo.jpg');
