@@ -1,7 +1,6 @@
 import { ReactNode } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { Home, Search, Plus, User, ArrowLeft } from 'lucide-react'
-import { WebGLBackground } from './WebGLBackground'
 
 type NavItem = { to: string; label: string; icon: typeof Home; match: (path: string) => boolean }
 
