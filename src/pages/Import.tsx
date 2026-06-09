@@ -445,7 +445,7 @@ export function Import() {
               <input
                 ref={fileInputRef}
                 type="file"
-                accept="image/*"
+                accept="image/*,.heic,.HEIC"
                 capture="environment"
                 onChange={handlePhotoSelected}
                 disabled={loading}
@@ -453,11 +453,9 @@ export function Import() {
               />
             </label>
 
-            <div className="mt-2 p-3 bg-amber-50 border border-amber-200 rounded-lg">
-              <p className="text-xs text-amber-900">
-                <strong>📱 iPhone Users:</strong> HEIC photos may not work in all browsers. For best results, convert to JPG before uploading:
-                <br />
-                <span className="text-amber-800">Settings → Camera → Formats → Choose "Most Compatible"</span>
+            <div className="mt-2 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+              <p className="text-xs text-blue-900">
+                <strong>📱 iPhone HEIC Support:</strong> HEIC photos are now supported! The server will automatically convert them for OCR processing.
               </p>
             </div>
 
@@ -568,17 +566,22 @@ export function Import() {
 }
 
 async function preprocessImage(file: File): Promise<{ blob: Blob; fileName: string }> {
-  // Check for HEIC/HEIF files and reject them with helpful message
+  // For HEIC/HEIF files, upload directly - server will handle conversion
   const isHeic = file.type === 'image/heic' ||
                  file.type === 'image/heif' ||
                  file.name.toLowerCase().endsWith('.heic') ||
                  file.name.toLowerCase().endsWith('.heif')
   
   if (isHeic) {
-    throw new Error('HEIC format is not supported. Please convert your photo to JPG first:\n\n📱 On iPhone: Settings → Camera → Formats → Choose "Most Compatible"\n\nOr use the Photos app to export as JPG before uploading.')
+    console.log('HEIC file detected, uploading to server for conversion:', file.name)
+    // Return HEIC file as-is, server will convert it
+    return {
+      blob: file,
+      fileName: file.name
+    }
   }
 
-  // Step 1: Load and preprocess image
+  // Step 1: Load and preprocess non-HEIC images
   const image = await loadImage(file)
   const maxWidth = 1600
   const scale = Math.min(1, maxWidth / image.width)
