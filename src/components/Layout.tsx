@@ -44,22 +44,22 @@ export function Layout({
   }
 
   return (
-    <div className="min-h-screen bg-[#1C322D] flex flex-col relative">
+    <div className="min-h-screen bg-primary flex flex-col relative">
       <WebGLBackground />
-      <header className="bg-[#F8F3EE]/95 backdrop-blur-sm border-b border-[#485E59]/30 sticky top-0 z-50 shadow-sm">
+      <header className="bg-background/95 backdrop-blur-sm border-b border-border/30 sticky top-0 z-50 shadow-sm">
         <div className="max-w-5xl mx-auto px-4 sm:px-6">
           <div className="flex items-center gap-4 h-16 min-h-[64px]">
             {showBack ? (
               <button
                 onClick={handleBack}
                 aria-label="Go back"
-                className="-ml-2 p-2 rounded-full hover:bg-[#1C322D]/5 text-[#1C322D] transition-all hover:scale-105 active:scale-95"
+                className="-ml-2 p-2 rounded-full hover:bg-primary/5 text-primary transition-all hover:scale-105 active:scale-95"
               >
                 <ArrowLeft size={20} strokeWidth={2.5} />
               </button>
             ) : (
               <Link to="/" className="flex items-center group flex-shrink-0" aria-label="Umami home">
-                <span className="font-display text-2xl sm:text-[26px] text-[#1C322D] leading-none tracking-tight group-hover:text-[#EBB552] transition-colors duration-200">
+                <span className="font-display text-2xl sm:text-[26px] text-primary leading-none tracking-tight group-hover:text-tertiary transition-colors duration-200">
                   Umami
                 </span>
               </Link>
@@ -67,7 +67,7 @@ export function Layout({
 
             {title && (
               <h1
-                className={`font-display text-lg sm:text-xl text-[#1C322D] truncate font-normal flex-1 min-w-0 ${
+                className={`font-display text-lg sm:text-xl text-primary truncate font-normal flex-1 min-w-0 ${
                   showBack ? '' : 'hidden sm:block'
                 }`}
               >
@@ -85,8 +85,8 @@ export function Layout({
                     to={item.to}
                     className={`flex items-center gap-2 px-3.5 py-2 rounded-full text-sm font-medium transition-all ${
                       active
-                        ? 'text-[#1C322D] bg-[#1C322D]/10'
-                        : 'text-[#A9B8B5] hover:text-[#1C322D] hover:bg-[#1C322D]/5'
+                        ? 'text-primary bg-primary/10'
+                        : 'text-muted-foreground hover:text-primary hover:bg-primary/5'
                     }`}
                     aria-current={active ? 'page' : undefined}
                   >
@@ -116,7 +116,7 @@ export function Layout({
 
       {!hideNav && (
         <nav
-          className="md:hidden fixed bottom-0 left-0 right-0 bg-[#F8F3EE]/95 backdrop-blur-sm border-t border-[#485E59]/30 pb-[env(safe-area-inset-bottom)] z-50 shadow-[0_-1px_3px_0_rgba(0,0,0,0.1)]"
+          className="md:hidden fixed bottom-0 left-0 right-0 bg-background/95 backdrop-blur-sm border-t border-border/30 pb-[env(safe-area-inset-bottom)] z-50 shadow-[0_-1px_3px_0_rgba(0,0,0,0.1)]"
           aria-label="Main"
         >
           <div className="flex justify-around items-stretch h-16 min-h-[64px]">
@@ -129,7 +129,7 @@ export function Layout({
                   to={item.to}
                   aria-current={active ? 'page' : undefined}
                   className={`flex flex-col items-center justify-center flex-1 gap-1 transition-colors ${
-                    active ? 'text-[#1C322D]' : 'text-[#A9B8B5]'
+                    active ? 'text-primary' : 'text-muted-foreground'
                   }`}
                 >
                   <Icon size={22} />

@@ -14,7 +14,7 @@ export function IngredientList({ ingredients }: { ingredients: Ingredient[] }) {
       {Object.entries(grouped).map(([group, items]) => (
         <div key={group}>
           {group !== 'main' && (
-            <h3 className="font-serif text-lg text-[#1A1A18] mb-3">{group}</h3>
+            <h3 className="font-serif text-lg text-primary mb-3">{group}</h3>
           )}
           <ul className="space-y-2">
             {items.map((ing, idx) => (
@@ -22,7 +22,7 @@ export function IngredientList({ ingredients }: { ingredients: Ingredient[] }) {
                 <input
                   type="checkbox"
                   id={`ing-${group}-${idx}`}
-                  className="mt-1 w-4 h-4 rounded border-gray-300 text-[#C0622F] focus:ring-[#C0622F]"
+                  className="mt-1 w-4 h-4 rounded border-gray-300 text-tertiary focus:ring-[#d97757]"
                 />
                 <label htmlFor={`ing-${group}-${idx}`} className="flex-1 cursor-pointer">
                   <span className="font-medium">{ing.amount} {ing.unit}</span> {ing.name}

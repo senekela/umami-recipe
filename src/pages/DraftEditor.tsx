@@ -96,8 +96,8 @@ export function DraftEditor() {
 
   const getFieldClassName = (field: ImportFlagField) => {
     return flaggedFields.has(field)
-      ? 'w-full px-4 py-2 bg-amber-50 border border-amber-300 rounded-lg focus:ring-2 focus:ring-[#C0622F] focus:border-transparent'
-      : 'w-full px-4 py-2 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#C0622F] focus:border-transparent'
+      ? 'w-full px-4 py-2 bg-amber-50 border border-amber-300 rounded-lg focus:ring-2 focus:ring-[#d97757] focus:border-transparent'
+      : 'w-full px-4 py-2 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#d97757] focus:border-transparent'
   }
 
   const resetPhotoFlow = () => {
@@ -121,8 +121,8 @@ export function DraftEditor() {
       <Layout showBack onBack={() => navigate('/me')} title="Draft" hideNav>
         <div className="flex items-center justify-center py-24">
           <div className="text-center">
-            <div className="w-8 h-8 border-4 border-[#C0622F] border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-            <p className="text-[#1A1A18]/60">Loading draft…</p>
+            <div className="w-8 h-8 border-4 border-tertiary border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+            <p className="text-primary/60">Loading draft…</p>
           </div>
         </div>
       </Layout>
@@ -325,7 +325,7 @@ export function DraftEditor() {
       hideNav
       rightSlot={
         <div className="flex items-center gap-2">
-          <span className="text-xs sm:text-sm text-[#1A1A18]/60 flex items-center gap-1">
+          <span className="text-xs sm:text-sm text-primary/60 flex items-center gap-1">
             {saveStatus === 'saved' && (<><Check size={14} className="text-green-600" /> Saved</>)}
             {saveStatus === 'saving' && 'Saving…'}
             {saveStatus === 'unsaved' && 'Unsaved'}
@@ -382,8 +382,8 @@ export function DraftEditor() {
           <div className="rounded-lg border border-gray-200 bg-white p-4 space-y-4">
             <div className="flex items-start justify-between gap-4">
               <div>
-                <h2 className="font-medium text-[#1A1A18]">Update from photo</h2>
-                <p className="text-sm text-[#1A1A18]/60">
+                <h2 className="font-medium text-primary">Update from photo</h2>
+                <p className="text-sm text-primary/60">
                   Upload a new recipe photo to re-run OCR with PaddleOCR and replace the current draft fields.
                 </p>
               </div>
@@ -412,10 +412,10 @@ export function DraftEditor() {
             {photoStage !== 'idle' && (
               <div className="space-y-2">
                 <div className="flex items-center justify-between text-sm">
-                  <span className="font-medium text-[#1A1A18]">Photo OCR progress</span>
-                  <span className="capitalize text-[#1A1A18]/60">{photoStage}</span>
+                  <span className="font-medium text-primary">Photo OCR progress</span>
+                  <span className="capitalize text-primary/60">{photoStage}</span>
                 </div>
-                <Progress value={photoProgress} className="h-2 [&_[data-slot=progress-indicator]]:bg-[#C0622F]" />
+                <Progress value={photoProgress} className="h-2 [&_[data-slot=progress-indicator]]:bg-tertiary" />
               </div>
             )}
 
@@ -431,7 +431,7 @@ export function DraftEditor() {
                     type="button"
                     onClick={handleApplyPhotoOcr}
                     disabled={!processedBlob || photoStage === 'uploading' || photoStage === 'ocr' || photoStage === 'parsing' || photoStage === 'saving'}
-                    className="flex-1 px-4 py-3 bg-[#C0622F] text-white rounded-lg hover:bg-[#A0522D] disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="flex-1 px-4 py-3 bg-tertiary text-white rounded-lg hover:bg-tertiary disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     Apply OCR to this draft
                   </button>
@@ -467,8 +467,8 @@ export function DraftEditor() {
               {!!draft.import_flags?.length && (
                 <div className="rounded-lg border border-gray-200 bg-white p-4">
                   <div className="flex items-center gap-2 mb-3">
-                    <FileText size={18} className="text-[#C0622F]" />
-                    <h2 className="font-medium text-[#1A1A18]">Flagged fields</h2>
+                    <FileText size={18} className="text-tertiary" />
+                    <h2 className="font-medium text-primary">Flagged fields</h2>
                   </div>
                   <div className="space-y-2">
                     {draft.import_flags.map((flag, index) => (
@@ -477,9 +477,9 @@ export function DraftEditor() {
                         className="rounded-md border border-gray-200 px-3 py-2 text-sm"
                       >
                         <span className="font-medium capitalize">{flag.field}</span>
-                        <span className="mx-2 text-[#1A1A18]/40">•</span>
-                        <span className="uppercase text-xs tracking-wide text-[#1A1A18]/60">{flag.severity}</span>
-                        <p className="mt-1 text-[#1A1A18]/70">{flag.message}</p>
+                        <span className="mx-2 text-primary/40">•</span>
+                        <span className="uppercase text-xs tracking-wide text-primary/60">{flag.severity}</span>
+                        <p className="mt-1 text-primary/70">{flag.message}</p>
                       </div>
                     ))}
                   </div>
@@ -488,8 +488,8 @@ export function DraftEditor() {
 
               {!!draft.raw_text && (
                 <div className="rounded-lg border border-gray-200 bg-white p-4">
-                  <h2 className="font-medium text-[#1A1A18] mb-2">Raw OCR text</h2>
-                  <p className="text-xs text-[#1A1A18]/60 mb-3">
+                  <h2 className="font-medium text-primary mb-2">Raw OCR text</h2>
+                  <p className="text-xs text-primary/60 mb-3">
                     Confidence: {Math.round((draft.import_confidence || 0) * 100)}%{draft.ocr_engine ? ` • Engine: ${draft.ocr_engine}` : ''}
                   </p>
                   <textarea
@@ -504,7 +504,7 @@ export function DraftEditor() {
           )}
 
           <div>
-            <label className="block text-sm font-medium text-[#1A1A18] mb-2">Title *</label>
+            <label className="block text-sm font-medium text-primary mb-2">Title *</label>
             <input
               type="text"
               value={draft.title}
@@ -515,7 +515,7 @@ export function DraftEditor() {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-[#1A1A18] mb-2">Description</label>
+            <label className="block text-sm font-medium text-primary mb-2">Description</label>
             <textarea
               value={draft.description || ''}
               onChange={(e) => updateField('description', e.target.value)}
@@ -527,7 +527,7 @@ export function DraftEditor() {
 
           <div className="grid sm:grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-[#1A1A18] mb-2">Image URL</label>
+              <label className="block text-sm font-medium text-primary mb-2">Image URL</label>
               <input
                 type="url"
                 value={draft.image_url || ''}
@@ -538,7 +538,7 @@ export function DraftEditor() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-[#1A1A18] mb-2">Source URL</label>
+              <label className="block text-sm font-medium text-primary mb-2">Source URL</label>
               <input
                 type="url"
                 value={draft.source_url || ''}
@@ -550,20 +550,20 @@ export function DraftEditor() {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-[#1A1A18] mb-2">Tags (comma-separated)</label>
+            <label className="block text-sm font-medium text-primary mb-2">Tags (comma-separated)</label>
             <input
               type="text"
               value={draft.tags.join(', ')}
               onChange={(e) => updateField('tags', e.target.value.split(',').map(t => t.trim()).filter(Boolean))}
-              className="w-full px-4 py-2 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#C0622F] focus:border-transparent"
+              className="w-full px-4 py-2 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#d97757] focus:border-transparent"
               placeholder="dinner, Italian, vegetarian"
             />
           </div>
 
           <div>
             <div className="flex items-center justify-between mb-2">
-              <label className="block text-sm font-medium text-[#1A1A18]">Ingredients *</label>
-              <button onClick={addIngredient} className="text-[#C0622F] text-sm hover:underline">
+              <label className="block text-sm font-medium text-primary">Ingredients *</label>
+              <button onClick={addIngredient} className="text-tertiary text-sm hover:underline">
                 + Add ingredient
               </button>
             </div>
@@ -601,15 +601,15 @@ export function DraftEditor() {
 
           <div>
             <div className="flex items-center justify-between mb-2">
-              <label className="block text-sm font-medium text-[#1A1A18]">Steps *</label>
-              <button onClick={addStep} className="text-[#C0622F] text-sm hover:underline">
+              <label className="block text-sm font-medium text-primary">Steps *</label>
+              <button onClick={addStep} className="text-tertiary text-sm hover:underline">
                 + Add step
               </button>
             </div>
             <div className="space-y-2">
               {draft.steps.sort((a, b) => a.order - b.order).map((step, idx) => (
                 <div key={idx} className="flex gap-2">
-                  <span className="w-8 h-10 flex items-center justify-center bg-[#C0622F]/10 text-[#C0622F] rounded font-medium">
+                  <span className="w-8 h-10 flex items-center justify-center bg-tertiary/10 text-tertiary rounded font-medium">
                     {step.order}
                   </span>
                   <textarea
@@ -634,7 +634,7 @@ export function DraftEditor() {
           <button
             onClick={handlePublish}
             disabled={!validation.isReadyToPublish}
-            className="flex-1 bg-[#C0622F] text-white py-3 rounded-lg font-medium hover:bg-[#A0522D] flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="flex-1 bg-tertiary text-white py-3 rounded-lg font-medium hover:bg-tertiary flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
             title={!validation.isReadyToPublish ? 'Complete all required fields to publish' : 'Publish recipe'}
           >
             <Eye size={20} />
@@ -661,7 +661,7 @@ export function DraftEditor() {
                 navigator.clipboard.writeText(`${window.location.origin}/share/${draft.share_token}`)
                 alert('Link copied!')
               }}
-              className="w-full bg-[#C0622F] text-white py-2 rounded-lg hover:bg-[#A0522D]"
+              className="w-full bg-tertiary text-white py-2 rounded-lg hover:bg-tertiary"
             >
               Copy Link
             </button>

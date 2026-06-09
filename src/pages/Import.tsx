@@ -337,8 +337,8 @@ export function Import() {
             onClick={() => setTab('url')}
             className={`pb-3 px-1 font-medium transition-colors ${
               tab === 'url'
-                ? 'text-[#C0622F] border-b-2 border-[#C0622F]'
-                : 'text-[#1A1A18]/60 hover:text-[#1A1A18]'
+                ? 'text-tertiary border-b-2 border-tertiary'
+                : 'text-primary/60 hover:text-primary'
             }`}
           >
             From URL
@@ -347,8 +347,8 @@ export function Import() {
             onClick={() => setTab('ocr')}
             className={`pb-3 px-1 font-medium transition-colors ${
               tab === 'ocr'
-                ? 'text-[#C0622F] border-b-2 border-[#C0622F]'
-                : 'text-[#1A1A18]/60 hover:text-[#1A1A18]'
+                ? 'text-tertiary border-b-2 border-tertiary'
+                : 'text-primary/60 hover:text-primary'
             }`}
           >
             From Photo
@@ -390,7 +390,7 @@ export function Import() {
         {tab === 'url' && (
           <div className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-[#1A1A18] mb-2">
+              <label className="block text-sm font-medium text-primary mb-2">
                 Recipe URL
               </label>
               <div className="flex flex-col sm:flex-row gap-2">
@@ -399,19 +399,19 @@ export function Import() {
                   value={url}
                   onChange={(e) => setUrl(e.target.value)}
                   placeholder="https://example.com/recipe"
-                  className="flex-1 px-4 py-3 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#C0622F] focus:border-transparent"
+                  className="flex-1 px-4 py-3 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#d97757] focus:border-transparent"
                 />
                 <button
                   onClick={handleUrlImport}
                   disabled={loading || !url}
-                  className="px-6 py-3 bg-[#C0622F] text-white rounded-lg hover:bg-[#A0522D] disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                  className="px-6 py-3 bg-tertiary text-white rounded-lg hover:bg-tertiary disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                 >
                   <LinkIcon size={20} />
                   {loading ? 'Importing…' : 'Import'}
                 </button>
               </div>
             </div>
-            <p className="text-sm text-[#1A1A18]/60">
+            <p className="text-sm text-primary/60">
               Paste a link to a recipe from any website. We support 376+ recipe sites with high-accuracy extraction.
             </p>
             <div className="mt-2 p-3 bg-blue-50 border border-blue-200 rounded-lg">
@@ -425,12 +425,12 @@ export function Import() {
         {tab === 'ocr' && (
           <div className="space-y-4">
             <label className="block w-full cursor-pointer">
-              <div className="bg-white border-2 border-dashed border-gray-300 rounded-lg p-12 text-center hover:border-[#C0622F] transition-colors">
-                <Camera size={48} className="mx-auto mb-4 text-[#C0622F]" />
-                <p className="text-lg font-medium text-[#1A1A18] mb-2">
+              <div className="bg-white border-2 border-dashed border-gray-300 rounded-lg p-12 text-center hover:border-tertiary transition-colors">
+                <Camera size={48} className="mx-auto mb-4 text-tertiary" />
+                <p className="text-lg font-medium text-primary mb-2">
                   {photoStage === 'preparing' ? 'Preparing photo…' : 'Take or upload a photo'}
                 </p>
-                <p className="text-sm text-[#1A1A18]/60">
+                <p className="text-sm text-primary/60">
                   Photograph a printed recipe page, then confirm before OCR runs
                 </p>
               </div>
@@ -448,11 +448,11 @@ export function Import() {
             {photoStage !== 'idle' && (
               <div className="bg-white border border-gray-200 rounded-lg p-4 space-y-3">
                 <div className="flex items-center justify-between text-sm">
-                  <span className="font-medium text-[#1A1A18]">Import progress</span>
-                  <span className="text-[#1A1A18]/60 capitalize">{photoStage}</span>
+                  <span className="font-medium text-primary">Import progress</span>
+                  <span className="text-primary/60 capitalize">{photoStage}</span>
                 </div>
-                <Progress value={photoProgress} className="h-2 [&_[data-slot=progress-indicator]]:bg-[#C0622F]" />
-                <p className="text-sm text-[#1A1A18]/60">
+                <Progress value={photoProgress} className="h-2 [&_[data-slot=progress-indicator]]:bg-tertiary" />
+                <p className="text-sm text-primary/60">
                   {photoStage === 'preparing' && 'Optimizing contrast and converting to OCR-friendly image…'}
                   {photoStage === 'ready' && 'Preview the processed image and confirm when it looks readable.'}
                   {photoStage === 'uploading' && 'Uploading processed image…'}
@@ -467,8 +467,8 @@ export function Import() {
               <div className="bg-white border border-gray-200 rounded-lg p-4 space-y-4">
                 <div className="flex items-center justify-between gap-4">
                   <div>
-                    <h2 className="font-medium text-[#1A1A18]">Processed preview</h2>
-                    <p className="text-sm text-[#1A1A18]/60">
+                    <h2 className="font-medium text-primary">Processed preview</h2>
+                    <p className="text-sm text-primary/60">
                       Confirm this looks clean before OCR starts.
                     </p>
                   </div>
@@ -493,7 +493,7 @@ export function Import() {
                     type="button"
                     onClick={handleConfirmPhoto}
                     disabled={!canConfirmPhoto}
-                    className="flex-1 px-4 py-3 bg-[#C0622F] text-white rounded-lg hover:bg-[#A0522D] disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="flex-1 px-4 py-3 bg-tertiary text-white rounded-lg hover:bg-tertiary disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     {loading ? 'Processing…' : 'Use this photo'}
                   </button>
@@ -526,7 +526,7 @@ export function Import() {
 
                 {ocrFlags.length > 0 && (
                   <div className="bg-white border border-gray-200 rounded-lg p-4">
-                    <h3 className="font-medium text-[#1A1A18] mb-2">Flagged fields</h3>
+                    <h3 className="font-medium text-primary mb-2">Flagged fields</h3>
                     <div className="space-y-2">
                       {ocrFlags.map((flag, index) => (
                         <div
@@ -534,9 +534,9 @@ export function Import() {
                           className="rounded-md border border-gray-200 px-3 py-2 text-sm"
                         >
                           <span className="font-medium capitalize">{flag.field}</span>
-                          <span className="mx-2 text-[#1A1A18]/40">•</span>
-                          <span className="uppercase text-xs tracking-wide text-[#1A1A18]/60">{flag.severity}</span>
-                          <p className="mt-1 text-[#1A1A18]/70">{flag.message}</p>
+                          <span className="mx-2 text-primary/40">•</span>
+                          <span className="uppercase text-xs tracking-wide text-primary/60">{flag.severity}</span>
+                          <p className="mt-1 text-primary/70">{flag.message}</p>
                         </div>
                       ))}
                     </div>

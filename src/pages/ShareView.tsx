@@ -81,8 +81,8 @@ export function ShareView() {
       <Layout title="Shared recipe" contained={false}>
         <div className="flex items-center justify-center py-24">
           <div className="text-center">
-            <div className="w-8 h-8 border-4 border-[#C0622F] border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-            <p className="text-[#1A1A18]/60">Loading recipe…</p>
+            <div className="w-8 h-8 border-4 border-tertiary border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+            <p className="text-primary/60">Loading recipe…</p>
           </div>
         </div>
       </Layout>
@@ -93,8 +93,8 @@ export function ShareView() {
     return (
       <Layout title="Shared recipe" contained={false}>
         <div className="text-center py-24">
-          <p className="text-xl text-[#1A1A18]/60 mb-4">This link is no longer active.</p>
-          <button onClick={() => navigate('/')} className="text-[#C0622F] hover:underline">
+          <p className="text-xl text-primary/60 mb-4">This link is no longer active.</p>
+          <button onClick={() => navigate('/')} className="text-tertiary hover:underline">
             Go to home
           </button>
         </div>
@@ -124,15 +124,15 @@ export function ShareView() {
         )}
 
         <div className="max-w-3xl mx-auto px-4 py-8">
-          <h1 className="font-serif text-3xl md:text-4xl text-[#1A1A18] mb-4">{recipe.title}</h1>
+          <h1 className="font-serif text-3xl md:text-4xl text-primary mb-4">{recipe.title}</h1>
           {recipe.description && (
-            <p className="text-lg text-[#1A1A18]/80 mb-6">{recipe.description}</p>
+            <p className="text-lg text-primary/80 mb-6">{recipe.description}</p>
           )}
 
           {recipe.tags.length > 0 && (
             <div className="flex flex-wrap gap-2 mb-6">
               {recipe.tags.map(tag => (
-                <span key={tag} className="text-sm px-3 py-1 bg-[#C0622F]/10 text-[#C0622F] rounded-full">
+                <span key={tag} className="text-sm px-3 py-1 bg-tertiary/10 text-tertiary rounded-full">
                   {tag}
                 </span>
               ))}
@@ -141,7 +141,7 @@ export function ShareView() {
 
           <button
             onClick={handleFork}
-            className="w-full sm:w-auto mb-8 px-6 py-3 bg-[#C0622F] text-white rounded-lg hover:bg-[#A0522D] flex items-center justify-center gap-2"
+            className="w-full sm:w-auto mb-8 px-6 py-3 bg-tertiary text-white rounded-lg hover:bg-tertiary flex items-center justify-center gap-2"
           >
             <Copy size={20} />
             Fork this recipe
@@ -149,12 +149,12 @@ export function ShareView() {
 
           <div className="grid md:grid-cols-2 gap-8 pt-4 border-t border-gray-100">
             <div>
-              <h2 className="font-serif text-2xl text-[#1A1A18] mb-4">Ingredients</h2>
+              <h2 className="font-serif text-2xl text-primary mb-4">Ingredients</h2>
               <IngredientList ingredients={recipe.ingredients} />
             </div>
 
             <div>
-              <h2 className="font-serif text-2xl text-[#1A1A18] mb-4">Steps</h2>
+              <h2 className="font-serif text-2xl text-primary mb-4">Steps</h2>
               <StepList steps={recipe.steps} />
             </div>
           </div>

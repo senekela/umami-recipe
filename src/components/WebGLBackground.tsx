@@ -66,12 +66,12 @@ export function WebGLBackground() {
         // Combine effects
         float intensity = dot * fade * (0.6 + pulse * 0.4 + mouseEffect);
         
-        // Warm orange color (#EBB552 with soft glow)
-        vec3 color = vec3(0.922, 0.710, 0.322); // #EBB552
+        // Terracotta color (#d97757 with soft glow)
+        vec3 color = vec3(0.851, 0.467, 0.341); // #d97757
         color *= intensity;
         
         // Add subtle depth with darker background
-        vec3 bgColor = vec3(0.110, 0.196, 0.176); // #1C322D
+        vec3 bgColor = vec3(0.078, 0.078, 0.075); // #141413
         color = mix(bgColor, color, intensity);
         
         gl_FragColor = vec4(color, intensity * 0.4);
@@ -151,7 +151,7 @@ export function WebGLBackground() {
     const render = () => {
       const time = (Date.now() - startTime) / 1000
 
-      gl.clearColor(0.110, 0.196, 0.176, 1.0) // #1C322D
+      gl.clearColor(0.078, 0.078, 0.075, 1.0) // #141413
       gl.clear(gl.COLOR_BUFFER_BIT)
 
       gl.uniform1f(timeLocation, time)
@@ -181,7 +181,7 @@ export function WebGLBackground() {
       ref={canvasRef}
       id="webgl-canvas"
       className="fixed top-0 left-0 w-full h-full -z-10 pointer-events-none"
-      style={{ background: '#1C322D' }}
+      style={{ background: '#141413' }}
     />
   )
 }

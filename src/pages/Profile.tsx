@@ -165,7 +165,7 @@ export function Profile() {
     return (
       <Layout title="Profile">
         <div className="flex items-center justify-center py-16">
-          <Loader2 className="w-8 h-8 animate-spin text-[#EBB552]" />
+          <Loader2 className="w-8 h-8 animate-spin text-tertiary" />
         </div>
       </Layout>
     )
@@ -174,11 +174,11 @@ export function Profile() {
   return (
     <Layout title="Profile" showBack onBack={() => navigate('/me')}>
       <div className="max-w-2xl mx-auto">
-        <div className="bg-[#F8F3EE] rounded-none shadow-[rgba(28,50,45,0.15)_0px_40px_80px_-20px] p-10 md:p-12">
+        <div className="bg-background rounded-none shadow-elevated p-10 md:p-12">
           {/* Avatar Section */}
           <div className="flex flex-col items-center mb-10">
             <div className="relative group">
-              <div className="w-32 h-32 rounded-full overflow-hidden bg-[#A9B8B5]/10 flex items-center justify-center">
+              <div className="w-32 h-32 rounded-full overflow-hidden bg-muted/10 flex items-center justify-center">
                 {profile?.avatar_url ? (
                   <img
                     src={profile.avatar_url}
@@ -186,14 +186,14 @@ export function Profile() {
                     className="w-full h-full object-cover"
                   />
                 ) : (
-                  <User className="w-16 h-16 text-[#A9B8B5]" />
+                  <User className="w-16 h-16 text-muted-foreground" />
                 )}
               </div>
               
               <button
                 onClick={() => fileInputRef.current?.click()}
                 disabled={uploading}
-                className="absolute bottom-0 right-0 bg-[#1C322D] text-[#F8F3EE] p-3 rounded-full shadow-[rgba(28,50,45,0.15)_0px_40px_80px_-20px] hover:bg-[#1C322D]/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                className="absolute bottom-0 right-0 bg-primary text-primary-foreground p-3 rounded-full shadow-elevated hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 aria-label="Upload profile picture"
               >
                 {uploading ? (
@@ -212,7 +212,7 @@ export function Profile() {
               />
             </div>
             
-            <p className="text-sm text-[#A9B8B5] mt-4 text-center font-light">
+            <p className="text-sm text-muted-foreground mt-4 text-center font-light">
               Click the camera icon to upload a new profile picture
               <br />
               <span className="text-xs">Max size: 2MB</span>
@@ -222,7 +222,7 @@ export function Profile() {
           {/* Nickname Section */}
           <form onSubmit={handleSaveNickname} className="space-y-6">
             <div>
-              <label htmlFor="nickname" className="block text-[11px] font-semibold text-[#A9B8B5] mb-3 uppercase tracking-[1.65px]">
+              <label htmlFor="nickname" className="block text-[11px] font-semibold text-muted-foreground mb-3 uppercase tracking-[1.65px]">
                 Nickname
               </label>
               <input
@@ -232,16 +232,16 @@ export function Profile() {
                 onChange={(e) => setNickname(e.target.value)}
                 placeholder="Enter your nickname"
                 maxLength={50}
-                className="w-full px-4 py-3 border border-[#485E59]/30 rounded-full focus:ring-2 focus:ring-[#1C322D] focus:border-[#1C322D] bg-white text-[#1C322D] placeholder:text-[#A9B8B5]"
+                className="w-full px-4 py-3 border border-border/30 rounded-full focus:ring-2 focus:ring-primary focus:border-primary bg-white text-primary placeholder:text-muted-foreground"
               />
-              <p className="text-xs text-[#A9B8B5] mt-2 font-light">
+              <p className="text-xs text-muted-foreground mt-2 font-light">
                 This is how you'll appear to others
               </p>
             </div>
 
             {/* Email (read-only) */}
             <div>
-              <label htmlFor="email" className="block text-[11px] font-semibold text-[#A9B8B5] mb-3 uppercase tracking-[1.65px]">
+              <label htmlFor="email" className="block text-[11px] font-semibold text-muted-foreground mb-3 uppercase tracking-[1.65px]">
                 Email
               </label>
               <input
@@ -249,7 +249,7 @@ export function Profile() {
                 type="email"
                 value={user?.email || ''}
                 disabled
-                className="w-full px-4 py-3 border border-[#485E59]/30 rounded-full bg-[#A9B8B5]/5 text-[#A9B8B5] cursor-not-allowed"
+                className="w-full px-4 py-3 border border-border/30 rounded-full bg-muted/5 text-muted-foreground cursor-not-allowed"
               />
             </div>
 
@@ -270,7 +270,7 @@ export function Profile() {
             <button
               type="submit"
               disabled={saving || nickname === profile?.nickname}
-              className="w-full bg-[#1C322D] text-[#F8F3EE] py-3 rounded-full font-semibold text-[11px] uppercase tracking-[1.65px] hover:bg-[#1C322D]/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full bg-primary text-primary-foreground py-3 rounded-full font-semibold text-[11px] uppercase tracking-[1.65px] hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {saving ? (
                 <span className="flex items-center justify-center gap-2">

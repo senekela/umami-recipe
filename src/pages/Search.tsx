@@ -23,20 +23,20 @@ export function Search() {
       title="Search"
       belowHeader={
         <div className="relative">
-          <SearchIcon className="absolute left-4 top-1/2 -translate-y-1/2 text-[#A9B8B5]" size={20} />
+          <SearchIcon className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground" size={20} />
           <input
             type="text"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search by title or description…"
-            className="w-full pl-12 pr-12 py-3 bg-[#F8F3EE] border border-[#485E59]/30 rounded-full focus:ring-2 focus:ring-[#1C322D] focus:border-[#1C322D] text-[#1C322D] placeholder:text-[#A9B8B5]"
+            className="w-full pl-12 pr-12 py-3 bg-background border border-border/30 rounded-full focus:ring-2 focus:ring-primary focus:border-primary text-primary placeholder:text-muted-foreground"
             autoFocus
           />
           {search && (
             <button
               onClick={() => setSearch('')}
               aria-label="Clear search"
-              className="absolute right-4 top-1/2 -translate-y-1/2 text-[#A9B8B5] hover:text-[#1C322D]"
+              className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-primary"
             >
               <X size={20} />
             </button>
@@ -47,11 +47,11 @@ export function Search() {
       {allTags.length > 0 && (
         <div className="mb-8">
           <div className="flex items-center justify-between mb-4">
-            <h3 className="text-[11px] font-semibold text-[#A9B8B5] uppercase tracking-[1.65px]">Filter by tag</h3>
+            <h3 className="text-[11px] font-semibold text-muted-foreground uppercase tracking-[1.65px]">Filter by tag</h3>
             {selectedTags.length > 0 && (
               <button
                 onClick={() => setSelectedTags([])}
-                className="text-[11px] font-semibold text-[#EBB552] hover:underline uppercase tracking-[1.65px]"
+                className="text-[11px] font-semibold text-tertiary hover:underline uppercase tracking-[1.65px]"
               >
                 Clear all ({selectedTags.length})
               </button>
@@ -64,8 +64,8 @@ export function Search() {
                 onClick={() => toggleTag(tag)}
                 className={`px-4 py-2 rounded-full text-[11px] font-semibold uppercase tracking-[1.65px] transition-all ${
                   selectedTags.includes(tag)
-                    ? 'bg-[#1C322D] text-[#F8F3EE] border border-[#1C322D]'
-                    : 'bg-[#F8F3EE] text-[#1C322D] border border-[#485E59]/30 hover:border-[#1C322D]'
+                    ? 'bg-primary text-primary-foreground border border-primary'
+                    : 'bg-background text-primary border border-border/30 hover:border-primary'
                 }`}
               >
                 {tag}
@@ -78,18 +78,18 @@ export function Search() {
       {loading ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
           {[1, 2, 3, 4].map(i => (
-            <div key={i} className="bg-[#F8F3EE] rounded-none overflow-hidden animate-pulse">
-              <div className="aspect-video bg-[#A9B8B5]/20"></div>
+            <div key={i} className="bg-background rounded-none overflow-hidden animate-pulse">
+              <div className="aspect-video bg-muted/20"></div>
               <div className="p-10">
-                <div className="h-6 bg-[#A9B8B5]/20 rounded mb-2"></div>
-                <div className="h-4 bg-[#A9B8B5]/20 rounded w-2/3"></div>
+                <div className="h-6 bg-muted/20 rounded mb-2"></div>
+                <div className="h-4 bg-muted/20 rounded w-2/3"></div>
               </div>
             </div>
           ))}
         </div>
       ) : recipes.length === 0 ? (
         <div className="text-center py-16">
-          <p className="text-[#A9B8B5] text-base">
+          <p className="text-muted-foreground text-base">
             {hasQuery
               ? 'No recipes match your search. Try different keywords or tags.'
               : 'Start typing to find recipes.'}
@@ -97,7 +97,7 @@ export function Search() {
         </div>
       ) : (
         <div>
-          <p className="text-[11px] text-[#A9B8B5] mb-4 font-semibold uppercase tracking-[1.65px]">
+          <p className="text-[11px] text-muted-foreground mb-4 font-semibold uppercase tracking-[1.65px]">
             {recipes.length} {recipes.length === 1 ? 'recipe' : 'recipes'} found
           </p>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">

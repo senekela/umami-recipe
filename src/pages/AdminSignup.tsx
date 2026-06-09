@@ -67,17 +67,17 @@ export function AdminSignup() {
   }
 
   return (
-    <div className="min-h-screen bg-[#1C322D] flex items-center justify-center p-4 relative">
+    <div className="min-h-screen bg-primary flex items-center justify-center p-4 relative">
       <WebGLBackground />
-      <div className="bg-[#F8F3EE] rounded-none shadow-[rgba(28,50,45,0.15)_0px_40px_80px_-20px] p-12 max-w-md w-full relative z-10">
-        <h1 className="font-display text-4xl text-[#1C322D] text-center mb-3 font-normal">Create Admin Account</h1>
-        <p className="text-center text-[#A9B8B5] mb-10 text-base font-light">
+      <div className="bg-background rounded-none shadow-elevated p-12 max-w-md w-full relative z-10">
+        <h1 className="font-display text-4xl text-primary text-center mb-3 font-normal">Create Admin Account</h1>
+        <p className="text-center text-muted-foreground mb-10 text-base font-light">
           Set up your admin account with email and password
         </p>
 
         <form onSubmit={handleSubmit} className="space-y-6">
           <div>
-            <label htmlFor="email" className="block text-[11px] font-semibold text-[#A9B8B5] mb-3 uppercase tracking-[1.65px]">
+            <label htmlFor="email" className="block text-[11px] font-semibold text-muted-foreground mb-3 uppercase tracking-[1.65px]">
               Email address
             </label>
             <input
@@ -87,12 +87,12 @@ export function AdminSignup() {
               onChange={(e) => setEmail(e.target.value)}
               required
               placeholder="admin@example.com"
-              className="w-full px-4 py-3 border border-[#485E59]/30 rounded-full focus:ring-2 focus:ring-[#1C322D] focus:border-[#1C322D] bg-white text-[#1C322D] placeholder:text-[#A9B8B5]"
+              className="w-full px-4 py-3 border border-border/30 rounded-full focus:ring-2 focus:ring-primary focus:border-primary bg-white text-primary placeholder:text-muted-foreground"
             />
           </div>
 
           <div>
-            <label htmlFor="password" className="block text-[11px] font-semibold text-[#A9B8B5] mb-3 uppercase tracking-[1.65px]">
+            <label htmlFor="password" className="block text-[11px] font-semibold text-muted-foreground mb-3 uppercase tracking-[1.65px]">
               Password
             </label>
             <input
@@ -103,15 +103,15 @@ export function AdminSignup() {
               required
               placeholder="••••••••"
               minLength={8}
-              className="w-full px-4 py-3 border border-[#485E59]/30 rounded-full focus:ring-2 focus:ring-[#1C322D] focus:border-[#1C322D] bg-white text-[#1C322D] placeholder:text-[#A9B8B5]"
+              className="w-full px-4 py-3 border border-border/30 rounded-full focus:ring-2 focus:ring-primary focus:border-primary bg-white text-primary placeholder:text-muted-foreground"
             />
-            <p className="text-xs text-[#A9B8B5] mt-2 font-light">
+            <p className="text-xs text-muted-foreground mt-2 font-light">
               Must be at least 8 characters long
             </p>
           </div>
 
           <div>
-            <label htmlFor="confirmPassword" className="block text-[11px] font-semibold text-[#A9B8B5] mb-3 uppercase tracking-[1.65px]">
+            <label htmlFor="confirmPassword" className="block text-[11px] font-semibold text-muted-foreground mb-3 uppercase tracking-[1.65px]">
               Confirm Password
             </label>
             <input
@@ -122,7 +122,7 @@ export function AdminSignup() {
               required
               placeholder="••••••••"
               minLength={8}
-              className="w-full px-4 py-3 border border-[#485E59]/30 rounded-full focus:ring-2 focus:ring-[#1C322D] focus:border-[#1C322D] bg-white text-[#1C322D] placeholder:text-[#A9B8B5]"
+              className="w-full px-4 py-3 border border-border/30 rounded-full focus:ring-2 focus:ring-primary focus:border-primary bg-white text-primary placeholder:text-muted-foreground"
             />
           </div>
 
@@ -135,16 +135,16 @@ export function AdminSignup() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-[#1C322D] text-[#F8F3EE] py-3 rounded-full font-semibold text-[11px] uppercase tracking-[1.65px] hover:bg-[#1C322D]/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full bg-primary text-primary-foreground py-3 rounded-full font-semibold text-[11px] uppercase tracking-[1.65px] hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {loading ? 'Creating account...' : 'Create Admin Account'}
           </button>
 
-          <div className="text-center pt-6 border-t border-[#485E59]/20">
+          <div className="text-center pt-6 border-t border-border/20">
             <button
               type="button"
               onClick={() => navigate('/login')}
-              className="text-sm text-[#EBB552] hover:underline font-medium"
+              className="text-sm text-tertiary hover:underline font-medium"
             >
               Already have an account? Sign in
             </button>

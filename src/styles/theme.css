@@ -1,62 +1,95 @@
+/* 
+ * Anthropic Brand — globals.css
+ * Font imports: add to your layout/index.html
+ * <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&family=Lora:wght@400;500&display=swap" rel="stylesheet">
+ */
+
 @custom-variant dark (&:is(.dark *));
 
 :root {
   --font-size: 16px;
-  
-  /* Mindful Moments Color Palette */
-  --background: #F8F3EE;
-  --foreground: #142622;
-  --card: #F8F3EE;
-  --card-foreground: #1C322D;
-  --card-secondary: #F1CDBE;
-  --card-tertiary: #A2C2B3;
-  --popover: #FFFFFF;
-  --popover-foreground: #1C322D;
-  --primary: #1C322D;
-  --primary-foreground: #F8F3EE;
-  --secondary: #A2C2B3;
-  --secondary-foreground: #1C322D;
-  --tertiary: #EBB552;
-  --muted: #A9B8B5;
-  --muted-foreground: #A9B8B5;
-  --accent: #1C322D;
-  --accent-foreground: #F8F3EE;
+
+  /* ─── Anthropic Brand Palette ─────────────────────────────────────────────
+   *
+   *  Surface scale  (warm ivory parchment → oat → cloud)
+   *  Accent trio     terracotta · sky · sage
+   *  Near-black      single dark anchor, almost no chromatic cast
+   *
+   * ────────────────────────────────────────────────────────────────────── */
+
+  --background: #faf9f5;           /* ivory parchment — the page itself      */
+  --foreground: #141413;           /* near-black — primary text               */
+
+  --card: #faf9f5;                 /* card surface = page surface             */
+  --card-foreground: #141413;
+  --card-secondary: #e3dacc;       /* oat — warm mid-surface                 */
+  --card-tertiary: #d1cfc5;        /* cloud light — cooler mid-surface        */
+
+  --popover: #ffffff;
+  --popover-foreground: #141413;
+
+  --primary: #141413;              /* near-black                              */
+  --primary-foreground: #faf9f5;
+
+  --secondary: #e8e6dc;            /* ivory dark — subtle tinted surface      */
+  --secondary-foreground: #141413;
+
+  --tertiary: #d97757;             /* terracotta — the single chromatic accent */
+
+  --muted: #b0aea5;                /* cloud medium — disabled / placeholder   */
+  --muted-foreground: #87867f;     /* cloud dark — secondary muted text       */
+
+  --accent: #141413;
+  --accent-foreground: #faf9f5;
+
   --destructive: #d4183d;
   --destructive-foreground: #ffffff;
-  --border: #485E59;
+
+  --border: #d1cfc5;               /* cloud light — hairline rules            */
   --input: transparent;
   --input-background: #ffffff;
-  --switch-background: #A9B8B5;
-  --surface: #FFFFFF;
-  --text-primary: #142622;
-  --text-secondary: #314542;
-  
-  /* Typography */
-  --font-display: 'Playfair Display', Georgia, serif;
-  --font-body: 'Inter', system-ui, -apple-system, sans-serif;
+  --switch-background: #b0aea5;
+
+  --surface: #ffffff;
+  --text-primary: #141413;
+  --text-secondary: #3d3c37;       /* slightly warm dark — secondary labels   */
+
+  /* ─── Typography ──────────────────────────────────────────────────────────
+   *
+   *  Poppins  →  display / headings  (geometric grotesque, tight tracking)
+   *  Lora     →  body / UI           (transitional serif, warm and readable)
+   *
+   *  Mirrors Anthropic's Anthropic Sans (navigation/UI) +
+   *  Anthropic Serif (editorial) pairing, with publicly available equivalents.
+   *
+   * ────────────────────────────────────────────────────────────────────── */
+
+  --font-display: 'Poppins', Arial, sans-serif;
+  --font-body: 'Lora', Georgia, serif;
+
   --font-weight-light: 300;
   --font-weight-normal: 400;
   --font-weight-medium: 500;
   --font-weight-semibold: 600;
-  
+
   /* Display Typography */
   --display-lg-size: 48px;
-  --display-lg-weight: 400;
-  --display-lg-line-height: 48px;
+  --display-lg-weight: 300;          /* Poppins light — open and editorial    */
+  --display-lg-line-height: 52px;
   --display-lg-letter-spacing: -0.02em;
-  
+
   /* Body Typography */
   --body-md-size: 15px;
-  --body-md-weight: 300;
+  --body-md-weight: 400;             /* Lora regular — warm and readable       */
   --body-md-line-height: 24.3833px;
-  
+
   /* Label Typography */
   --label-md-size: 11px;
   --label-md-weight: 600;
   --label-md-line-height: 16.5px;
-  --label-md-letter-spacing: 1.65px;
-  
-  /* Spacing System (8px base) */
+  --label-md-letter-spacing: 1.65px; /* tight tracking on Poppins caps         */
+
+  /* ─── Spacing (8px base) ──────────────────────────────────────────────── */
   --spacing-base: 8px;
   --spacing-sm: 1px;
   --spacing-md: 2px;
@@ -65,70 +98,84 @@
   --spacing-gap: 6px;
   --spacing-card-padding: 40px;
   --spacing-section-padding: 40px;
-  
-  /* Border Radius */
-  --radius-md: 0px;
+
+  /* ─── Border Radius ───────────────────────────────────────────────────── */
+  --radius-md: 0px;                  /* flat — Anthropic's hard-edge aesthetic */
   --radius-lg: 12px;
   --radius-xl: 48px;
   --radius-full: 9999px;
-  
-  /* Shadows */
-  --shadow-elevated: rgba(28, 50, 45, 0.15) 0px 40px 80px -20px;
-  --shadow-inset: rgba(0, 0, 0, 0.05) 0px 2px 4px 0px inset;
-  --shadow-subtle: rgba(0, 0, 0, 0.05) 0px 1px 2px 0px;
-  
-  --ring: #1C322D;
-  --chart-1: oklch(0.646 0.222 41.116);
-  --chart-2: oklch(0.6 0.118 184.704);
-  --chart-3: oklch(0.398 0.07 227.392);
-  --chart-4: oklch(0.828 0.189 84.429);
-  --chart-5: oklch(0.769 0.188 70.08);
+
+  /* ─── Shadows — nearly flat, very restrained ──────────────────────────── */
+  --shadow-elevated: rgba(20, 20, 19, 0.08) 0px 32px 64px -16px;
+  --shadow-inset: rgba(20, 20, 19, 0.04) 0px 2px 4px 0px inset;
+  --shadow-subtle: rgba(20, 20, 19, 0.04) 0px 1px 2px 0px;
+
+  /* ─── Chart / Data Colors (terracotta · sky · sage + tints) ──────────── */
+  --ring: #141413;
+  --chart-1: #d97757;                /* terracotta                            */
+  --chart-2: #6a9bcc;                /* sky blue                              */
+  --chart-3: #788c5d;                /* sage green                            */
+  --chart-4: #e3b99a;                /* light terracotta tint                 */
+  --chart-5: #a3c4e0;                /* light sky tint                        */
+
   --radius: 0px;
-  --sidebar: #FFFFFF;
-  --sidebar-foreground: #1C322D;
-  --sidebar-primary: #1C322D;
-  --sidebar-primary-foreground: #F8F3EE;
-  --sidebar-accent: #A2C2B3;
-  --sidebar-accent-foreground: #1C322D;
-  --sidebar-border: #485E59;
-  --sidebar-ring: #1C322D;
+
+  /* ─── Sidebar ─────────────────────────────────────────────────────────── */
+  --sidebar: #ffffff;
+  --sidebar-foreground: #141413;
+  --sidebar-primary: #141413;
+  --sidebar-primary-foreground: #faf9f5;
+  --sidebar-accent: #e8e6dc;
+  --sidebar-accent-foreground: #141413;
+  --sidebar-border: #d1cfc5;
+  --sidebar-ring: #141413;
 }
 
+/* ─── Dark Mode ─────────────────────────────────────────────────────────────
+ *  Inverted ivory scale; terracotta accent preserved at full strength.
+ * ─────────────────────────────────────────────────────────────────────────── */
 .dark {
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.145 0 0);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.145 0 0);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.985 0 0);
-  --primary-foreground: oklch(0.205 0 0);
-  --secondary: oklch(0.269 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.269 0 0);
-  --accent-foreground: oklch(0.985 0 0);
+  --background: #141413;
+  --foreground: #faf9f5;
+  --card: #1e1d1b;
+  --card-foreground: #faf9f5;
+  --card-secondary: #2a2927;
+  --card-tertiary: #333230;
+  --popover: #1e1d1b;
+  --popover-foreground: #faf9f5;
+  --primary: #faf9f5;
+  --primary-foreground: #141413;
+  --secondary: #2a2927;
+  --secondary-foreground: #faf9f5;
+  --tertiary: #d97757;               /* terracotta holds in dark               */
+  --muted: #2a2927;
+  --muted-foreground: #b0aea5;
+  --accent: #2a2927;
+  --accent-foreground: #faf9f5;
   --destructive: oklch(0.396 0.141 25.723);
   --destructive-foreground: oklch(0.637 0.237 25.331);
-  --border: oklch(0.269 0 0);
-  --input: oklch(0.269 0 0);
-  --ring: oklch(0.439 0 0);
+  --border: #2a2927;
+  --input: #2a2927;
+  --switch-background: #3d3c37;
+  --surface: #1e1d1b;
+  --text-primary: #faf9f5;
+  --text-secondary: #b0aea5;
+  --ring: #87867f;
   --font-weight-medium: 500;
   --font-weight-normal: 400;
-  --chart-1: oklch(0.488 0.243 264.376);
-  --chart-2: oklch(0.696 0.17 162.48);
-  --chart-3: oklch(0.769 0.188 70.08);
-  --chart-4: oklch(0.627 0.265 303.9);
-  --chart-5: oklch(0.645 0.246 16.439);
-  --sidebar: oklch(0.205 0 0);
-  --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.269 0 0);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
-  --sidebar-border: oklch(0.269 0 0);
-  --sidebar-ring: oklch(0.439 0 0);
+  --chart-1: #d97757;
+  --chart-2: #6a9bcc;
+  --chart-3: #788c5d;
+  --chart-4: #e3b99a;
+  --chart-5: #a3c4e0;
+  --sidebar: #1e1d1b;
+  --sidebar-foreground: #faf9f5;
+  --sidebar-primary: #d97757;
+  --sidebar-primary-foreground: #faf9f5;
+  --sidebar-accent: #2a2927;
+  --sidebar-accent-foreground: #faf9f5;
+  --sidebar-border: #2a2927;
+  --sidebar-ring: #87867f;
 }
 
 @theme inline {
@@ -161,6 +208,10 @@
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
+  --color-tertiary: var(--tertiary);
+  --shadow-elevated: var(--shadow-elevated);
+  --shadow-inset: var(--shadow-inset);
+  --shadow-subtle: var(--shadow-subtle);
   --radius-xl: calc(var(--radius) + 4px);
   --color-sidebar: var(--sidebar);
   --color-sidebar-foreground: var(--sidebar-foreground);
@@ -183,24 +234,24 @@
   }
 
   .font-serif {
-    font-family: var(--font-display);
+    font-family: var(--font-body);     /* Lora */
   }
-  
+
   .font-display {
-    font-family: var(--font-display);
+    font-family: var(--font-display);  /* Poppins */
   }
 
   /**
-  * Default typography styles for HTML elements (h1-h4, p, label, button, input).
-  * These are in @layer base, so Tailwind utility classes (like text-sm, text-lg) automatically override them.
-  */
+   * Default typography styles for HTML elements (h1–h4, p, label, button, input).
+   * These are in @layer base, so Tailwind utility classes override them automatically.
+   */
 
   html {
     font-size: var(--font-size);
   }
 
   h1, h2, h3, h4 {
-    font-family: var(--font-display);
+    font-family: var(--font-display);  /* Poppins for all headings */
   }
 
   h1 {
@@ -212,8 +263,9 @@
 
   h2 {
     font-size: 32px;
-    font-weight: var(--font-weight-normal);
+    font-weight: var(--font-weight-light);
     line-height: 1.3;
+    letter-spacing: -0.01em;
   }
 
   h3 {
@@ -234,12 +286,14 @@
     line-height: var(--label-md-line-height);
     letter-spacing: var(--label-md-letter-spacing);
     text-transform: uppercase;
+    font-family: var(--font-display);  /* Poppins for utility labels */
     color: var(--text-primary);
   }
 
   button {
     font-size: var(--body-md-size);
     font-weight: var(--font-weight-medium);
+    font-family: var(--font-display);  /* Poppins for interactive controls */
     line-height: 1.5;
   }
 
@@ -249,7 +303,7 @@
     line-height: var(--body-md-line-height);
     color: var(--text-primary);
   }
-  
+
   p {
     font-size: var(--body-md-size);
     font-weight: var(--body-md-weight);
@@ -262,3 +316,22 @@
     opacity: 0.45;
   }
 }
+
+/* Made with Bob */
+
+  /* Custom shadow utilities */
+  .shadow-elevated {
+    box-shadow: var(--shadow-elevated);
+  }
+  
+  .shadow-inset {
+    box-shadow: var(--shadow-inset);
+  }
+  
+  .shadow-subtle {
+    box-shadow: var(--shadow-subtle);
+  }
+  
+  .hover\:shadow-elevated:hover {
+    box-shadow: var(--shadow-elevated);
+  }

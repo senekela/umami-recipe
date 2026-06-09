@@ -46,17 +46,17 @@ export function Login() {
 
   if (sent) {
     return (
-      <div className="min-h-screen bg-[#1C322D] flex items-center justify-center p-4 relative">
+      <div className="min-h-screen bg-primary flex items-center justify-center p-4 relative">
         <WebGLBackground />
-        <div className="bg-[#F8F3EE] rounded-none shadow-[rgba(28,50,45,0.15)_0px_40px_80px_-20px] p-12 max-w-md w-full text-center relative z-10">
-          <div className="w-16 h-16 bg-[#A2C2B3]/20 rounded-full flex items-center justify-center mx-auto mb-6">
-            <svg className="w-8 h-8 text-[#1C322D]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <div className="bg-background rounded-none shadow-elevated p-12 max-w-md w-full text-center relative z-10">
+          <div className="w-16 h-16 bg-secondary/20 rounded-full flex items-center justify-center mx-auto mb-6">
+            <svg className="w-8 h-8 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
             </svg>
           </div>
-          <h1 className="font-display text-3xl text-[#1C322D] mb-3 font-normal">Check your email</h1>
-          <p className="text-[#A9B8B5] mb-4 text-base font-light">
-            We sent a sign-in link to <strong className="text-[#1C322D]">{email}</strong>
+          <h1 className="font-display text-3xl text-primary mb-3 font-normal">Check your email</h1>
+          <p className="text-muted-foreground mb-4 text-base font-light">
+            We sent a sign-in link to <strong className="text-primary">{email}</strong>
           </p>
           <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-8 text-left">
             <p className="text-sm text-blue-900 mb-2">
@@ -77,14 +77,14 @@ export function Login() {
                 setSent(false)
                 setEmail('')
               }}
-              className="text-[#EBB552] hover:underline font-medium"
+              className="text-tertiary hover:underline font-medium"
             >
               ← Back to login
             </button>
             <button
               onClick={() => handleSubmit(new Event('submit') as any)}
               disabled={loading}
-              className="text-sm text-[#A9B8B5] hover:text-[#1C322D]"
+              className="text-sm text-muted-foreground hover:text-primary"
             >
               Didn't receive it? Resend email
             </button>
@@ -95,17 +95,17 @@ export function Login() {
   }
 
   return (
-    <div className="min-h-screen bg-[#1C322D] flex items-center justify-center p-4 relative">
+    <div className="min-h-screen bg-primary flex items-center justify-center p-4 relative">
       <WebGLBackground />
-      <div className="bg-[#F8F3EE] rounded-none shadow-[rgba(28,50,45,0.15)_0px_40px_80px_-20px] p-12 max-w-md w-full relative z-10">
-        <h1 className="font-display text-4xl text-[#1C322D] text-center mb-3 font-normal">Umami</h1>
-        <p className="text-center text-[#A9B8B5] mb-10 text-base font-light">
+      <div className="bg-background rounded-none shadow-elevated p-12 max-w-md w-full relative z-10">
+        <h1 className="font-display text-4xl text-primary text-center mb-3 font-normal">Umami</h1>
+        <p className="text-center text-muted-foreground mb-10 text-base font-light">
           {isAdminMode ? 'Admin sign in' : 'Sign in to save and share recipes'}
         </p>
 
         <form onSubmit={handleSubmit} className="space-y-6">
           <div>
-            <label htmlFor="email" className="block text-[11px] font-semibold text-[#A9B8B5] mb-3 uppercase tracking-[1.65px]">
+            <label htmlFor="email" className="block text-[11px] font-semibold text-muted-foreground mb-3 uppercase tracking-[1.65px]">
               Email address
             </label>
             <input
@@ -115,13 +115,13 @@ export function Login() {
               onChange={(e) => setEmail(e.target.value)}
               required
               placeholder="you@example.com"
-              className="w-full px-4 py-3 border border-[#485E59]/30 rounded-full focus:ring-2 focus:ring-[#1C322D] focus:border-[#1C322D] bg-white text-[#1C322D] placeholder:text-[#A9B8B5]"
+              className="w-full px-4 py-3 border border-border/30 rounded-full focus:ring-2 focus:ring-primary focus:border-primary bg-white text-primary placeholder:text-muted-foreground"
             />
           </div>
 
           {isAdminMode && (
             <div>
-              <label htmlFor="password" className="block text-[11px] font-semibold text-[#A9B8B5] mb-3 uppercase tracking-[1.65px]">
+              <label htmlFor="password" className="block text-[11px] font-semibold text-muted-foreground mb-3 uppercase tracking-[1.65px]">
                 Password
               </label>
               <input
@@ -131,7 +131,7 @@ export function Login() {
                 onChange={(e) => setPassword(e.target.value)}
                 required
                 placeholder="••••••••"
-                className="w-full px-4 py-3 border border-[#485E59]/30 rounded-full focus:ring-2 focus:ring-[#1C322D] focus:border-[#1C322D] bg-white text-[#1C322D] placeholder:text-[#A9B8B5]"
+                className="w-full px-4 py-3 border border-border/30 rounded-full focus:ring-2 focus:ring-primary focus:border-primary bg-white text-primary placeholder:text-muted-foreground"
               />
             </div>
           )}
@@ -145,12 +145,12 @@ export function Login() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-[#1C322D] text-[#F8F3EE] py-3 rounded-full font-semibold text-[11px] uppercase tracking-[1.65px] hover:bg-[#1C322D]/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full bg-primary text-primary-foreground py-3 rounded-full font-semibold text-[11px] uppercase tracking-[1.65px] hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {loading ? (isAdminMode ? 'Signing in...' : 'Sending...') : (isAdminMode ? 'Sign in' : 'Send me a link')}
           </button>
 
-          <div className="text-center pt-6 border-t border-[#485E59]/20 space-y-3">
+          <div className="text-center pt-6 border-t border-border/20 space-y-3">
             <button
               type="button"
               onClick={() => {
@@ -158,7 +158,7 @@ export function Login() {
                 setError(null)
                 setPassword('')
               }}
-              className="text-sm text-[#EBB552] hover:underline block w-full font-medium"
+              className="text-sm text-tertiary hover:underline block w-full font-medium"
             >
               {isAdminMode ? 'Sign in with magic link instead' : 'Admin? Sign in with password'}
             </button>
@@ -166,7 +166,7 @@ export function Login() {
               <button
                 type="button"
                 onClick={() => navigate('/admin/signup')}
-                className="text-sm text-[#A9B8B5] hover:text-[#EBB552] hover:underline block w-full"
+                className="text-sm text-muted-foreground hover:text-tertiary hover:underline block w-full"
               >
                 Need to create an admin account?
               </button>
