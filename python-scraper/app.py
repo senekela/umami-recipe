@@ -21,6 +21,13 @@ try:
 except ImportError:  # pragma: no cover - handled at runtime
     pytesseract = None
 
+try:
+    from pillow_heif import register_heif_opener
+    register_heif_opener()
+    HEIF_SUPPORT = True
+except ImportError:
+    HEIF_SUPPORT = False
+
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -103,24 +110,33 @@ def scrape_recipe(url: str) -> Dict[str, Any]:
 
 
 def preprocess_image_bytes(image_bytes: bytes) -> Image.Image:
-    """Preprocess image for better OCR results"""
-    image = Image.open(BytesIO(image_bytes))
-    
-    # Convert to grayscale
-    image = image.convert('L')
-    
-    # Enhance contrast
-    enhancer = ImageEnhance.Contrast(image)
-    image = enhancer.enhance(2.0)
-    
-    # Resize if too large
-    max_width = 2000
-    if image.width > max_width:
-        ratio = max_width / float(image.width)
-        new_height = max(1, int(image.height * ratio))
-        image = image.resize((max_width, new_height), Image.Resampling.LANCZOS)
-    
-    return image
+    """Preprocess image for better OCR results, including HEIC/HEIF support"""
+    try:
+        image = Image.open(BytesIO(image_bytes))
+        
+        # Convert HEIC/HEIF or any format to RGB first, then grayscale
+        # This ensures compatibility with all image formats
+        if image.mode not in ('L', 'RGB'):
+            image = image.convert('RGB')
+        
+        # Convert to grayscale
+        image = image.convert('L')
+        
+        # Enhance contrast
+        enhancer = ImageEnhance.Contrast(image)
+        image = enhancer.enhance(2.0)
+        
+        # Resize if too large
+        max_width = 2000
+        if image.width > max_width:
+            ratio = max_width / float(image.width)
+            new_height = max(1, int(image.height * ratio))
+            image = image.resize((max_width, new_height), Image.Resampling.LANCZOS)
+        
+        return image
+    except Exception as e:
+        logger.error(f"Error preprocessing image: {str(e)}")
+        raise ValueError(f"Failed to process image. Ensure it's a valid image file. Error: {str(e)}")
 
 
 def extract_text_with_tesseract(image: Image.Image) -> str:
@@ -362,8 +378,9 @@ def health_check():
     return jsonify({
         'status': 'healthy',
         'service': 'recipe-scraper',
-        'version': '1.2.0',
+        'version': '1.3.0',
         'ocr_engine': ocr_status,
+        'heif_support': HEIF_SUPPORT,
     })
 
 

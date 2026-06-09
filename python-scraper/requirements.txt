@@ -5,3 +5,4 @@ gunicorn==21.2.0
 requests==2.31.0
 pillow==10.4.0
 pytesseract==0.3.10
+pillow-heif==0.18.0

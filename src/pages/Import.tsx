@@ -561,38 +561,23 @@ export function Import() {
 }
 
 async function preprocessImage(file: File): Promise<{ blob: Blob; fileName: string }> {
-  // Step 1: Convert HEIC to JPEG if needed
-  let processFile = file
+  // For HEIC/HEIF files, skip client-side conversion and let the server handle it
   const isHeic = file.type === 'image/heic' ||
                  file.type === 'image/heif' ||
                  file.name.toLowerCase().endsWith('.heic') ||
                  file.name.toLowerCase().endsWith('.heif')
   
   if (isHeic) {
-    try {
-      console.log('Converting HEIC file:', file.name, 'Type:', file.type, 'Size:', file.size)
-      
-      const convertedBlob = await heic2any({
-        blob: file,
-        toType: 'image/jpeg',
-        quality: 0.92
-      })
-      
-      console.log('HEIC conversion successful')
-      
-      // heic2any can return Blob or Blob[], handle both cases
-      const jpegBlob = Array.isArray(convertedBlob) ? convertedBlob[0] : convertedBlob
-      processFile = new File([jpegBlob], file.name.replace(/\.heic$/i, '.jpg').replace(/\.heif$/i, '.jpg'), { type: 'image/jpeg' })
-      
-      console.log('Converted file:', processFile.name, 'Type:', processFile.type, 'Size:', processFile.size)
-    } catch (error) {
-      console.error('HEIC conversion error:', error)
-      throw new Error(`Failed to convert HEIC image: ${error instanceof Error ? error.message : 'Unknown error'}. Your browser may not support HEIC conversion. Try converting to JPG on your device first.`)
+    console.log('HEIC file detected, will be processed by server:', file.name, 'Type:', file.type, 'Size:', file.size)
+    // Return the HEIC file as-is, server will handle conversion
+    return {
+      blob: file,
+      fileName: file.name
     }
   }
 
-  // Step 2: Load and preprocess image
-  const image = await loadImage(processFile)
+  // Step 1: Load and preprocess non-HEIC images
+  const image = await loadImage(file)
   const maxWidth = 1600
   const scale = Math.min(1, maxWidth / image.width)
   const width = Math.max(1, Math.round(image.width * scale))
