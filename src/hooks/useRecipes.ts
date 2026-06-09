@@ -15,11 +15,13 @@ export function useRecipes(filters?: { search?: string; tags?: string[] }) {
   async function loadRecipes() {
     try {
       setLoading(true)
+      
+      // Query recipes with owner profile join using the correct foreign key syntax
       let query = supabase
         .from('recipes')
         .select(`
           *,
-          publisher:profiles!recipes_owner_id_fkey(nickname)
+          profiles(nickname)
         `)
         .eq('status', 'published')
         .order('published_at', { ascending: false })
@@ -34,10 +36,26 @@ export function useRecipes(filters?: { search?: string; tags?: string[] }) {
 
       const { data, error } = await query
 
-      if (error) throw error
-      setRecipes(data || [])
+      if (error) {
+        console.error('Recipe query error:', error)
+        console.error('Error details:', JSON.stringify(error, null, 2))
+        throw error
+      }
+      
+      console.log('Raw query result:', data)
+      
+      // Map the profiles data to publisher format
+      const recipesWithPublisher = data?.map(recipe => ({
+        ...recipe,
+        publisher: recipe.profiles ? { nickname: recipe.profiles.nickname } : null
+      })) || []
+      
+      console.log('Loaded recipes:', recipesWithPublisher.length, 'recipes')
+      console.log('First recipe:', recipesWithPublisher[0])
+      setRecipes(recipesWithPublisher)
       setError(null)
     } catch (err) {
+      console.error('Failed to load recipes:', err)
       setError(err instanceof Error ? err.message : 'Failed to load recipes')
     } finally {
       setLoading(false)

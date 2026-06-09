@@ -8,7 +8,7 @@ import { Search } from 'lucide-react'
 export function Home() {
   const navigate = useNavigate()
   const [selectedTags, setSelectedTags] = useState<string[]>([])
-  const { recipes, loading } = useRecipes({ tags: selectedTags })
+  const { recipes, loading, error } = useRecipes({ tags: selectedTags })
 
   const allTags = Array.from(new Set(recipes.flatMap(r => r.tags)))
 
@@ -62,6 +62,15 @@ export function Home() {
                 {tag}
               </button>
             ))}
+          </div>
+        </div>
+      )}
+
+      {error && (
+        <div className="max-w-2xl mx-auto mb-8">
+          <div className="bg-red-50 border border-red-200 rounded-lg p-6">
+            <h3 className="text-red-800 font-semibold mb-2">Error loading recipes</h3>
+            <p className="text-red-600 text-sm">{error}</p>
           </div>
         </div>
       )}
