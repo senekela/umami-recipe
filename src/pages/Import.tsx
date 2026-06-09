@@ -455,9 +455,11 @@ export function Import() {
 
             <div className="mt-2 p-3 bg-amber-50 border border-amber-200 rounded-lg">
               <p className="text-xs text-amber-900">
-                <strong>📱 iPhone Users:</strong> HEIC format not supported. Convert to JPG first:
+                <strong>📱 iPhone Users:</strong> Change your camera settings to save photos as JPG:
                 <br />
-                <span className="text-amber-800">Settings → Camera → Formats → "Most Compatible"</span>
+                <span className="text-amber-800 font-medium">Settings → Camera → Formats → "Most Compatible"</span>
+                <br />
+                <span className="text-amber-700 text-[10px] mt-1 block">HEIC format is not supported for OCR processing</span>
               </p>
             </div>
 
@@ -575,7 +577,7 @@ async function preprocessImage(file: File): Promise<{ blob: Blob; fileName: stri
                  file.name.toLowerCase().endsWith('.heif')
   
   if (isHeic) {
-    throw new Error('HEIC format is not supported. Please convert to JPG first:\n\n📱 iPhone: Settings → Camera → Formats → "Most Compatible"\n\nOr export as JPG from Photos app before uploading.')
+    throw new Error('HEIC format is not supported.\n\n📱 To change your iPhone camera settings:\n\n1. Open Settings app\n2. Scroll down and tap Camera\n3. Tap Formats\n4. Select "Most Compatible"\n\nThis will save all future photos as JPG instead of HEIC.\n\nFor this photo, please export it as JPG from the Photos app first.')
   }
 
   // Step 1: Load and preprocess image
