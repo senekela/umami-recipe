@@ -7,7 +7,6 @@ import { Link as LinkIcon, Camera, Sparkles, AlertTriangle, RefreshCcw, CheckCir
 import { Progress } from '../app/components/ui/progress'
 import { Alert, AlertDescription, AlertTitle } from '../app/components/ui/alert'
 import type { DraftSchema, ImportFlag } from '../lib/types/recipe'
-import heic2any from 'heic2any'
 import { z } from 'zod'
 
 type ImportStage =
@@ -446,13 +445,21 @@ export function Import() {
               <input
                 ref={fileInputRef}
                 type="file"
-                accept="image/*,.heic,.HEIC"
+                accept="image/*"
                 capture="environment"
                 onChange={handlePhotoSelected}
                 disabled={loading}
                 className="hidden"
               />
             </label>
+
+            <div className="mt-2 p-3 bg-amber-50 border border-amber-200 rounded-lg">
+              <p className="text-xs text-amber-900">
+                <strong>📱 iPhone Users:</strong> HEIC photos may not work in all browsers. For best results, convert to JPG before uploading:
+                <br />
+                <span className="text-amber-800">Settings → Camera → Formats → Choose "Most Compatible"</span>
+              </p>
+            </div>
 
             {photoStage !== 'idle' && (
               <div className="bg-white border border-gray-200 rounded-lg p-4 space-y-3">
@@ -561,51 +568,18 @@ export function Import() {
 }
 
 async function preprocessImage(file: File): Promise<{ blob: Blob; fileName: string }> {
-  // Step 1: Convert HEIC to JPEG if needed
-  let processFile = file
+  // Check for HEIC/HEIF files and reject them with helpful message
   const isHeic = file.type === 'image/heic' ||
                  file.type === 'image/heif' ||
                  file.name.toLowerCase().endsWith('.heic') ||
                  file.name.toLowerCase().endsWith('.heif')
   
   if (isHeic) {
-    try {
-      console.log('Converting HEIC file:', file.name, 'Type:', file.type, 'Size:', file.size)
-      
-      // Try conversion with multiple quality settings for better compatibility
-      let convertedBlob: Blob | Blob[]
-      try {
-        convertedBlob = await heic2any({
-          blob: file,
-          toType: 'image/jpeg',
-          quality: 0.92
-        })
-      } catch (firstError) {
-        console.warn('First HEIC conversion attempt failed, trying with lower quality:', firstError)
-        // Fallback: try with lower quality
-        convertedBlob = await heic2any({
-          blob: file,
-          toType: 'image/jpeg',
-          quality: 0.8
-        })
-      }
-      
-      console.log('HEIC conversion successful')
-      
-      // heic2any can return Blob or Blob[], handle both cases
-      const jpegBlob = Array.isArray(convertedBlob) ? convertedBlob[0] : convertedBlob
-      processFile = new File([jpegBlob], file.name.replace(/\.heic$/i, '.jpg').replace(/\.heif$/i, '.jpg'), { type: 'image/jpeg' })
-      
-      console.log('Converted file:', processFile.name, 'Type:', processFile.type, 'Size:', processFile.size)
-    } catch (error) {
-      console.error('HEIC conversion error:', error)
-      const errorMsg = error instanceof Error ? error.message : 'Unknown error'
-      throw new Error(`HEIC conversion failed: ${errorMsg}. Please convert the photo to JPG on your device first, or try taking a new photo in a different format.`)
-    }
+    throw new Error('HEIC format is not supported. Please convert your photo to JPG first:\n\n📱 On iPhone: Settings → Camera → Formats → Choose "Most Compatible"\n\nOr use the Photos app to export as JPG before uploading.')
   }
 
-  // Step 2: Load and preprocess image
-  const image = await loadImage(processFile)
+  // Step 1: Load and preprocess image
+  const image = await loadImage(file)
   const maxWidth = 1600
   const scale = Math.min(1, maxWidth / image.width)
   const width = Math.max(1, Math.round(image.width * scale))
