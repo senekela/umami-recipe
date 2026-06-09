@@ -561,23 +561,51 @@ export function Import() {
 }
 
 async function preprocessImage(file: File): Promise<{ blob: Blob; fileName: string }> {
-  // For HEIC/HEIF files, skip client-side conversion and let the server handle it
+  // Step 1: Convert HEIC to JPEG if needed
+  let processFile = file
   const isHeic = file.type === 'image/heic' ||
                  file.type === 'image/heif' ||
                  file.name.toLowerCase().endsWith('.heic') ||
                  file.name.toLowerCase().endsWith('.heif')
   
   if (isHeic) {
-    console.log('HEIC file detected, will be processed by server:', file.name, 'Type:', file.type, 'Size:', file.size)
-    // Return the HEIC file as-is, server will handle conversion
-    return {
-      blob: file,
-      fileName: file.name
+    try {
+      console.log('Converting HEIC file:', file.name, 'Type:', file.type, 'Size:', file.size)
+      
+      // Try conversion with multiple quality settings for better compatibility
+      let convertedBlob: Blob | Blob[]
+      try {
+        convertedBlob = await heic2any({
+          blob: file,
+          toType: 'image/jpeg',
+          quality: 0.92
+        })
+      } catch (firstError) {
+        console.warn('First HEIC conversion attempt failed, trying with lower quality:', firstError)
+        // Fallback: try with lower quality
+        convertedBlob = await heic2any({
+          blob: file,
+          toType: 'image/jpeg',
+          quality: 0.8
+        })
+      }
+      
+      console.log('HEIC conversion successful')
+      
+      // heic2any can return Blob or Blob[], handle both cases
+      const jpegBlob = Array.isArray(convertedBlob) ? convertedBlob[0] : convertedBlob
+      processFile = new File([jpegBlob], file.name.replace(/\.heic$/i, '.jpg').replace(/\.heif$/i, '.jpg'), { type: 'image/jpeg' })
+      
+      console.log('Converted file:', processFile.name, 'Type:', processFile.type, 'Size:', processFile.size)
+    } catch (error) {
+      console.error('HEIC conversion error:', error)
+      const errorMsg = error instanceof Error ? error.message : 'Unknown error'
+      throw new Error(`HEIC conversion failed: ${errorMsg}. Please convert the photo to JPG on your device first, or try taking a new photo in a different format.`)
     }
   }
 
-  // Step 1: Load and preprocess non-HEIC images
-  const image = await loadImage(file)
+  // Step 2: Load and preprocess image
+  const image = await loadImage(processFile)
   const maxWidth = 1600
   const scale = Math.min(1, maxWidth / image.width)
   const width = Math.max(1, Math.round(image.width * scale))
