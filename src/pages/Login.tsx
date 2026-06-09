@@ -1,7 +1,6 @@
 import { useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
-import { WebGLBackground } from '../components/WebGLBackground'
 
 export function Login() {
   const [email, setEmail] = useState('')
@@ -46,9 +45,8 @@ export function Login() {
 
   if (sent) {
     return (
-      <div className="min-h-screen bg-primary flex items-center justify-center p-4 relative">
-        <WebGLBackground />
-        <div className="bg-background rounded-none shadow-elevated p-12 max-w-md w-full text-center relative z-10">
+      <div className="min-h-screen bg-background flex items-center justify-center p-4">
+        <div className="bg-card rounded-none shadow-elevated p-12 max-w-md w-full text-center border border-border">
           <div className="w-16 h-16 bg-secondary/20 rounded-full flex items-center justify-center mx-auto mb-6">
             <svg className="w-8 h-8 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
@@ -95,9 +93,8 @@ export function Login() {
   }
 
   return (
-    <div className="min-h-screen bg-primary flex items-center justify-center p-4 relative">
-      <WebGLBackground />
-      <div className="bg-background rounded-none shadow-elevated p-12 max-w-md w-full relative z-10">
+    <div className="min-h-screen bg-background flex items-center justify-center p-4">
+      <div className="bg-card rounded-none shadow-elevated p-12 max-w-md w-full border border-border">
         <h1 className="font-display text-4xl text-primary text-center mb-3 font-normal">Umami</h1>
         <p className="text-center text-muted-foreground mb-10 text-base font-light">
           {isAdminMode ? 'Admin sign in' : 'Sign in to save and share recipes'}

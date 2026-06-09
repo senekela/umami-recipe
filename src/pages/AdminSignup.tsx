@@ -2,7 +2,6 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
 import { supabase } from '../lib/supabase'
-import { WebGLBackground } from '../components/WebGLBackground'
 
 export function AdminSignup() {
   const [email, setEmail] = useState('')
@@ -67,9 +66,8 @@ export function AdminSignup() {
   }
 
   return (
-    <div className="min-h-screen bg-primary flex items-center justify-center p-4 relative">
-      <WebGLBackground />
-      <div className="bg-background rounded-none shadow-elevated p-12 max-w-md w-full relative z-10">
+    <div className="min-h-screen bg-background flex items-center justify-center p-4">
+      <div className="bg-card rounded-none shadow-elevated p-12 max-w-md w-full border border-border">
         <h1 className="font-display text-4xl text-primary text-center mb-3 font-normal">Create Admin Account</h1>
         <p className="text-center text-muted-foreground mb-10 text-base font-light">
           Set up your admin account with email and password
