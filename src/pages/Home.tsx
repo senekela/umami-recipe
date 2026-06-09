@@ -92,7 +92,7 @@ export function Home() {
             </p>
             <div className="grid sm:grid-cols-2 gap-4">
               <button
-                onClick={() => navigate('/import')}
+                onClick={() => navigate('/import?tab=url')}
                 className="bg-white border border-border/20 rounded-lg p-6 text-left hover:border-primary hover:shadow-lg transition-all cursor-pointer group"
               >
                 <div className="w-10 h-10 bg-secondary/20 rounded-full flex items-center justify-center mb-4 group-hover:bg-primary/20 transition-colors">
@@ -106,7 +106,7 @@ export function Home() {
                 </p>
               </button>
               <button
-                onClick={() => navigate('/import')}
+                onClick={() => navigate('/import?tab=ocr')}
                 className="bg-white border border-border/20 rounded-lg p-6 text-left hover:border-primary hover:shadow-lg transition-all cursor-pointer group"
               >
                 <div className="w-10 h-10 bg-secondary/20 rounded-full flex items-center justify-center mb-4 group-hover:bg-primary/20 transition-colors">

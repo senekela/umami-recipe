@@ -1,5 +1,5 @@
-import { useMemo, useRef, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useMemo, useRef, useState, useEffect } from 'react'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { supabase, callEdgeFunction } from '../lib/supabase'
 import { useAuth } from '../hooks/useAuth'
 import { Layout } from '../components/Layout'
@@ -48,9 +48,18 @@ const MAX_FILE_SIZE = 500 * 1024 // 500 KB
 export function Import() {
   const { user } = useAuth()
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
   const fileInputRef = useRef<HTMLInputElement | null>(null)
 
   const [tab, setTab] = useState<'url' | 'ocr'>('url')
+
+  // Set initial tab from URL parameter
+  useEffect(() => {
+    const tabParam = searchParams.get('tab')
+    if (tabParam === 'ocr' || tabParam === 'url') {
+      setTab(tabParam)
+    }
+  }, [searchParams])
   const [url, setUrl] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
