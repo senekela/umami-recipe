@@ -1,11 +1,12 @@
 import { useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { useRecipes } from '../hooks/useRecipes'
 import { RecipeCard } from '../components/RecipeCard'
 import { Layout } from '../components/Layout'
 import { Search } from 'lucide-react'
 
 export function Home() {
+  const navigate = useNavigate()
   const [selectedTags, setSelectedTags] = useState<string[]>([])
   const { recipes, loading } = useRecipes({ tags: selectedTags })
 
@@ -89,9 +90,12 @@ export function Home() {
             <p className="text-muted-foreground mb-8 text-base font-light leading-relaxed">
               Your personal recipe collection starts here. Import recipes from any website or snap a photo of a recipe card to get started.
             </p>
-            <div className="grid sm:grid-cols-2 gap-4 mb-8">
-              <div className="bg-white border border-border/20 rounded-lg p-6 text-left">
-                <div className="w-10 h-10 bg-secondary/20 rounded-full flex items-center justify-center mb-4">
+            <div className="grid sm:grid-cols-2 gap-4">
+              <button
+                onClick={() => navigate('/import')}
+                className="bg-white border border-border/20 rounded-lg p-6 text-left hover:border-primary hover:shadow-lg transition-all cursor-pointer group"
+              >
+                <div className="w-10 h-10 bg-secondary/20 rounded-full flex items-center justify-center mb-4 group-hover:bg-primary/20 transition-colors">
                   <svg className="w-5 h-5 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
                   </svg>
@@ -100,9 +104,12 @@ export function Home() {
                 <p className="text-sm text-muted-foreground font-light">
                   Paste a link from 376+ supported recipe sites. We'll extract everything automatically.
                 </p>
-              </div>
-              <div className="bg-white border border-border/20 rounded-lg p-6 text-left">
-                <div className="w-10 h-10 bg-secondary/20 rounded-full flex items-center justify-center mb-4">
+              </button>
+              <button
+                onClick={() => navigate('/import')}
+                className="bg-white border border-border/20 rounded-lg p-6 text-left hover:border-primary hover:shadow-lg transition-all cursor-pointer group"
+              >
+                <div className="w-10 h-10 bg-secondary/20 rounded-full flex items-center justify-center mb-4 group-hover:bg-primary/20 transition-colors">
                   <svg className="w-5 h-5 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
@@ -112,14 +119,8 @@ export function Home() {
                 <p className="text-sm text-muted-foreground font-light">
                   Take a picture of a recipe card or cookbook page. OCR will extract the text.
                 </p>
-              </div>
+              </button>
             </div>
-            <Link
-              to="/import"
-              className="inline-flex items-center gap-2 px-6 py-3 bg-primary text-primary-foreground rounded-full font-semibold text-[11px] uppercase tracking-[1.65px] hover:bg-primary/90 transition-colors"
-            >
-              Import your first recipe →
-            </Link>
           </div>
         </div>
       ) : (
