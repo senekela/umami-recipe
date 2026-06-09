@@ -445,7 +445,7 @@ export function Import() {
               <input
                 ref={fileInputRef}
                 type="file"
-                accept="image/*,.heic,.HEIC"
+                accept="image/*"
                 capture="environment"
                 onChange={handlePhotoSelected}
                 disabled={loading}
@@ -453,9 +453,11 @@ export function Import() {
               />
             </label>
 
-            <div className="mt-2 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-              <p className="text-xs text-blue-900">
-                <strong>📱 iPhone HEIC Support:</strong> HEIC photos are now supported! The server will automatically convert them for OCR processing.
+            <div className="mt-2 p-3 bg-amber-50 border border-amber-200 rounded-lg">
+              <p className="text-xs text-amber-900">
+                <strong>📱 iPhone Users:</strong> HEIC format not supported. Convert to JPG first:
+                <br />
+                <span className="text-amber-800">Settings → Camera → Formats → "Most Compatible"</span>
               </p>
             </div>
 
@@ -566,22 +568,17 @@ export function Import() {
 }
 
 async function preprocessImage(file: File): Promise<{ blob: Blob; fileName: string }> {
-  // For HEIC/HEIF files, upload directly - server will handle conversion
+  // Check for HEIC/HEIF files and reject with helpful message
   const isHeic = file.type === 'image/heic' ||
                  file.type === 'image/heif' ||
                  file.name.toLowerCase().endsWith('.heic') ||
                  file.name.toLowerCase().endsWith('.heif')
   
   if (isHeic) {
-    console.log('HEIC file detected, uploading to server for conversion:', file.name)
-    // Return HEIC file as-is, server will convert it
-    return {
-      blob: file,
-      fileName: file.name
-    }
+    throw new Error('HEIC format is not supported. Please convert to JPG first:\n\n📱 iPhone: Settings → Camera → Formats → "Most Compatible"\n\nOr export as JPG from Photos app before uploading.')
   }
 
-  // Step 1: Load and preprocess non-HEIC images
+  // Step 1: Load and preprocess image
   const image = await loadImage(file)
   const maxWidth = 1600
   const scale = Math.min(1, maxWidth / image.width)

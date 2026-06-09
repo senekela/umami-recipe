@@ -21,13 +21,6 @@ try:
 except ImportError:  # pragma: no cover - handled at runtime
     pytesseract = None
 
-try:
-    from pillow_heif import register_heif_opener
-    register_heif_opener()
-    HEIF_SUPPORT = True
-except ImportError:
-    HEIF_SUPPORT = False
-
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -369,9 +362,8 @@ def health_check():
     return jsonify({
         'status': 'healthy',
         'service': 'recipe-scraper',
-        'version': '1.3.0',
+        'version': '1.2.0',
         'ocr_engine': ocr_status,
-        'heif_support': HEIF_SUPPORT,
     })
 
 
