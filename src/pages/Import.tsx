@@ -208,8 +208,8 @@ export function Import() {
       // Provide specific error messages based on error type
       let errorMessage = 'Failed to prepare photo'
       if (err instanceof Error) {
-        if (err.message.includes('HEIC')) {
-          errorMessage = 'Failed to convert HEIC image. Try converting to JPG on your device first, or use a different photo format.'
+        if (err.message.includes('HEIC') || err.message.includes('heic2any')) {
+          errorMessage = err.message
         } else if (err.message.includes('compress')) {
           errorMessage = 'Unable to compress image to required size. Try using a smaller image or crop it to just the recipe.'
         } else if (err.message.includes('processing')) {
@@ -561,23 +561,33 @@ export function Import() {
 }
 
 async function preprocessImage(file: File): Promise<{ blob: Blob; fileName: string }> {
-  // Step 1: Convert HEIC to PNG if needed
+  // Step 1: Convert HEIC to JPEG if needed
   let processFile = file
-  const isHeic = file.type === 'image/heic' || file.name.toLowerCase().endsWith('.heic')
+  const isHeic = file.type === 'image/heic' ||
+                 file.type === 'image/heif' ||
+                 file.name.toLowerCase().endsWith('.heic') ||
+                 file.name.toLowerCase().endsWith('.heif')
   
   if (isHeic) {
     try {
+      console.log('Converting HEIC file:', file.name, 'Type:', file.type, 'Size:', file.size)
+      
       const convertedBlob = await heic2any({
         blob: file,
-        toType: 'image/png',
-        quality: 0.9
+        toType: 'image/jpeg',
+        quality: 0.92
       })
       
+      console.log('HEIC conversion successful')
+      
       // heic2any can return Blob or Blob[], handle both cases
-      const pngBlob = Array.isArray(convertedBlob) ? convertedBlob[0] : convertedBlob
-      processFile = new File([pngBlob], file.name.replace(/\.heic$/i, '.png'), { type: 'image/png' })
+      const jpegBlob = Array.isArray(convertedBlob) ? convertedBlob[0] : convertedBlob
+      processFile = new File([jpegBlob], file.name.replace(/\.heic$/i, '.jpg').replace(/\.heif$/i, '.jpg'), { type: 'image/jpeg' })
+      
+      console.log('Converted file:', processFile.name, 'Type:', processFile.type, 'Size:', processFile.size)
     } catch (error) {
-      throw new Error('Failed to convert HEIC image. Please try a different format.')
+      console.error('HEIC conversion error:', error)
+      throw new Error(`Failed to convert HEIC image: ${error instanceof Error ? error.message : 'Unknown error'}. Your browser may not support HEIC conversion. Try converting to JPG on your device first.`)
     }
   }
 
