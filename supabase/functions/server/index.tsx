@@ -68,10 +68,10 @@ app.post("/make-server-b410369f/import-ocr", async (c) => {
     const result = await handleOcrImport(storage_path, supabaseUrl, serviceRoleKey);
 
     if (result.error) {
-      return c.json({ error: result.error, partial: result.partial }, 400);
+      return c.json({ error: result.error, partial: result.partial }, result.status);
     }
 
-    return c.json(result.data);
+    return c.json(result.data, result.status);
   } catch (err) {
     console.error("OCR import error:", err);
     return c.json({ error: "Failed to process image" }, 500);

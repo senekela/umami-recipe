@@ -60,7 +60,7 @@ export async function callEdgeFunction<T>(
         errorMessage = errorText || errorMessage
       }
 
-      return { data: null, error: errorMessage }
+      return { data: null, error: `HTTP ${response.status}: ${errorMessage}` }
     }
 
     if (!isJson) {

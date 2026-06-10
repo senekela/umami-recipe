@@ -28,7 +28,14 @@ type PythonOcrResponse = {
   error?: string;
 };
 
-export async function handleOcrImport(storagePath: string, supabaseUrl: string, serviceRoleKey: string) {
+type OcrImportResult = {
+  data: OcrDraft | null;
+  error: string | null;
+  partial: null;
+  status: number;
+};
+
+export async function handleOcrImport(storagePath: string, supabaseUrl: string, serviceRoleKey: string): Promise<OcrImportResult> {
   try {
     const pythonApiUrl = Deno.env.get('PYTHON_SCRAPER_URL') || 'https://umami-recipe.onrender.com';
     const supabase = createClient(supabaseUrl, serviceRoleKey);
@@ -42,12 +49,14 @@ export async function handleOcrImport(storagePath: string, supabaseUrl: string, 
     if (downloadError || !fileData) {
       console.error('Storage download error:', downloadError);
       return {
-        error: `Failed to download image from storage: ${downloadError?.message || 'Unknown error'}. Path: ${storagePath}`,
-        partial: null
+        data: null,
+        error: `Failed to download image from storage bucket "ocr-uploads". ${downloadError?.message || 'Unknown error'}. Path: ${storagePath}`,
+        partial: null,
+        status: 500
       };
     }
 
-    console.log('File downloaded successfully, size:', fileData.size);
+    console.log('File downloaded successfully, size:', fileData.size, 'type:', fileData.type || 'unknown');
 
     const formData = new FormData();
     formData.append('image', fileData, 'recipe-photo.jpg');
@@ -59,10 +68,12 @@ export async function handleOcrImport(storagePath: string, supabaseUrl: string, 
         body: formData,
       });
     } catch (fetchError) {
-      console.error('PaddleOCR service network error:', fetchError);
+      console.error('OCR service network error:', fetchError);
       return {
-        error: 'PaddleOCR service is unreachable. Verify PYTHON_SCRAPER_URL and that the Python OCR service is running.',
-        partial: null
+        data: null,
+        error: 'OCR service is unreachable. Verify PYTHON_SCRAPER_URL and that the Python OCR service is running.',
+        partial: null,
+        status: 502
       };
     }
 
@@ -71,27 +82,48 @@ export async function handleOcrImport(storagePath: string, supabaseUrl: string, 
 
     if (!isJson) {
       const text = await response.text();
+      console.error('OCR service returned non-JSON response:', response.status, text);
       return {
-        error: text || 'PaddleOCR service returned an invalid response',
-        partial: null
+        data: null,
+        error: text || `OCR service returned an invalid response (HTTP ${response.status})`,
+        partial: null,
+        status: 502
       };
     }
 
     const result = await response.json() as PythonOcrResponse;
 
     if (!response.ok || !result.success || !result.data) {
+      const downstreamError = result.error || `OCR service failed with HTTP ${response.status}`;
+
+      console.error('OCR service error:', {
+        status: response.status,
+        error: downstreamError,
+        storagePath,
+      });
+
+      const normalizedError = downstreamError.includes('Tesseract OCR binary not found')
+        ? 'OCR service is deployed without the Tesseract system package. Install tesseract-ocr on the Python service host.'
+        : downstreamError.includes('pytesseract is not installed')
+          ? 'OCR service is deployed without the pytesseract Python package. Add pytesseract to python-scraper/requirements.txt and redeploy.'
+          : downstreamError;
+
       return {
-        error: result.error || 'Failed to process image with PaddleOCR',
-        partial: null
+        data: null,
+        error: normalizedError,
+        partial: null,
+        status: response.status >= 500 ? 502 : 422
       };
     }
 
-    return { data: result.data, error: null };
+    return { data: result.data, error: null, partial: null, status: 200 };
   } catch (err) {
     console.error('OCR import error:', err);
     return {
+      data: null,
       error: err instanceof Error ? err.message : 'Failed to process image. Please try again.',
-      partial: null
+      partial: null,
+      status: 500
     };
   }
 }
