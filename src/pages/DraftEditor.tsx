@@ -523,6 +523,20 @@ export function DraftEditor() {
               className={getFieldClassName('description')}
               placeholder="Describe your recipe"
             />
+          <div>
+            <label className="block text-sm font-medium text-primary mb-2">Servings</label>
+            <input
+              type="number"
+              value={draft.servings || ''}
+              onChange={(e) => updateField('servings', e.target.value ? parseInt(e.target.value) : null)}
+              className="w-full px-4 py-2 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#d97757] focus:border-transparent"
+              placeholder="4"
+              min="1"
+              max="50"
+            />
+            <p className="text-xs text-primary/60 mt-1">Number of servings this recipe makes (optional, used for scaling)</p>
+          </div>
+
           </div>
 
           <div className="grid sm:grid-cols-2 gap-4">

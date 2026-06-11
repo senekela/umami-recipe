@@ -41,6 +41,7 @@ export type Recipe = {
   ingredients: Ingredient[]
   steps: Step[]
   tags: string[]
+  servings: number | null
   status: 'draft' | 'published'
   owner_id: string
   publisher?: RecipePublisher | null

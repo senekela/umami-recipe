@@ -6,7 +6,9 @@ import type { Recipe } from '../lib/types/recipe'
 import { IngredientList } from '../components/IngredientList'
 import { StepList } from '../components/StepList'
 import { Layout } from '../components/Layout'
+import { RecipeScaling } from '../components/RecipeScaling'
 import { Edit, Globe, EyeOff } from 'lucide-react'
+import { scaleIngredients, type ScalingState } from '../lib/recipeScaling'
 
 export function RecipeDetail() {
   const { slug } = useParams<{ slug: string }>()
@@ -14,6 +16,7 @@ export function RecipeDetail() {
   const navigate = useNavigate()
   const [recipe, setRecipe] = useState<Recipe | null>(null)
   const [loading, setLoading] = useState(true)
+  const [scalingState, setScalingState] = useState<ScalingState | null>(null)
 
   useEffect(() => {
     loadRecipe()
@@ -77,6 +80,17 @@ export function RecipeDetail() {
 
   const isOwner = user?.id === recipe.owner_id
 
+  // Calculate scaled ingredients
+  const scaledIngredients = scalingState
+    ? scaleIngredients(
+        recipe.ingredients,
+        scalingState.scalingFactor,
+        scalingState.anchorIngredientIndex
+      )
+    : recipe.ingredients
+
+  const isScaled = scalingState ? scalingState.scalingFactor !== 1 : false
+
   return (
     <Layout showBack title={recipe.title} contained={false}>
       <article className="bg-background">
@@ -135,10 +149,19 @@ export function RecipeDetail() {
             </div>
           )}
 
+          {/* Recipe Scaling Controls */}
+          <div className="mb-8">
+            <RecipeScaling
+              originalServings={recipe.servings}
+              ingredients={recipe.ingredients}
+              onScalingChange={setScalingState}
+            />
+          </div>
+
           <div className="grid md:grid-cols-2 gap-12 pt-8 border-t border-border/20">
             <div>
               <h2 className="font-display text-3xl text-primary mb-6 font-normal">Ingredients</h2>
-              <IngredientList ingredients={recipe.ingredients} />
+              <IngredientList ingredients={scaledIngredients} isScaled={isScaled} />
             </div>
 
             <div>
