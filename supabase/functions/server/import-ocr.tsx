@@ -102,11 +102,9 @@ export async function handleOcrImport(storagePath: string, supabaseUrl: string, 
         storagePath,
       });
 
-      const normalizedError = downstreamError.includes('Tesseract OCR binary not found')
-        ? 'OCR service is deployed without the Tesseract system package. Install tesseract-ocr on the Python service host.'
-        : downstreamError.includes('pytesseract is not installed')
-          ? 'OCR service is deployed without the pytesseract Python package. Add pytesseract to python-scraper/requirements.txt and redeploy.'
-          : downstreamError;
+      const normalizedError = downstreamError.includes('docling is not installed')
+        ? 'OCR service is deployed without the docling Python package. Add docling to python-scraper/requirements.txt and redeploy.'
+        : downstreamError;
 
       return {
         data: null,

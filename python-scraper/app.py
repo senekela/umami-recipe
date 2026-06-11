@@ -1,7 +1,7 @@
 """
 Recipe Scraper API
 A Flask-based REST API for scraping recipes from various cooking websites
-and extracting recipe text from images with Tesseract OCR.
+and extracting recipe text from images with Docling OCR.
 """
 
 from flask import Flask, request, jsonify
@@ -17,9 +17,11 @@ from io import BytesIO
 from PIL import Image, ImageOps, ImageEnhance
 
 try:
-    import pytesseract
+    from docling.document_converter import DocumentConverter
+    from docling.datamodel.base_models import InputFormat
+    from docling.datamodel.pipeline_options import PdfPipelineOptions
 except ImportError:  # pragma: no cover - handled at runtime
-    pytesseract = None
+    DocumentConverter = None
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -52,19 +54,11 @@ UNIT_HINT_PATTERN = re.compile(
     re.IGNORECASE,
 )
 
-def check_tesseract_available():
-    """Check if Tesseract OCR is available"""
-    if pytesseract is None:
+def check_docling_available():
+    """Check if Docling is available"""
+    if DocumentConverter is None:
         raise RuntimeError(
-            'pytesseract is not installed. Add pytesseract to python-scraper/requirements.txt.'
-        )
-    
-    try:
-        # Test if tesseract binary is available
-        pytesseract.get_tesseract_version()
-    except Exception as e:
-        raise RuntimeError(
-            f'Tesseract OCR binary not found. Install tesseract-ocr system package. Error: {str(e)}'
+            'docling is not installed. Add docling to python-scraper/requirements.txt.'
         )
 
 
@@ -123,18 +117,31 @@ def preprocess_image_bytes(image_bytes: bytes) -> Image.Image:
     return image
 
 
-def extract_text_with_tesseract(image: Image.Image) -> str:
-    """Extract text from image using Tesseract OCR with French language support"""
-    check_tesseract_available()
+def extract_text_with_docling(image_bytes: bytes) -> str:
+    """Extract text from image using Docling"""
+    check_docling_available()
     
-    # Use pytesseract to extract text
-    # PSM 6 = Assume a single uniform block of text
-    # Support both French and English (fra+eng)
-    lang = os.environ.get('TESSERACT_LANG', 'fra+eng')
-    custom_config = r'--oem 3 --psm 6'
-    text = pytesseract.image_to_string(image, lang=lang, config=custom_config)
+    # Save image bytes to a temporary file for docling
+    import tempfile
+    with tempfile.NamedTemporaryFile(suffix='.jpg', delete=False) as tmp_file:
+        tmp_file.write(image_bytes)
+        tmp_path = tmp_file.name
     
-    return text.strip()
+    try:
+        # Initialize Docling converter
+        converter = DocumentConverter()
+        
+        # Convert the image
+        result = converter.convert(tmp_path)
+        
+        # Extract text from the document
+        text = result.document.export_to_markdown()
+        
+        return text.strip()
+    finally:
+        # Clean up temporary file
+        if os.path.exists(tmp_path):
+            os.unlink(tmp_path)
 
 
 def find_title(lines: List[str]):
@@ -256,10 +263,9 @@ def score_heuristics(lines: List[str], ingredient_count: int, step_count: int, t
 
 
 def extract_recipe_from_image_bytes(image_bytes: bytes) -> Dict[str, Any]:
-    """Extract recipe from image using Tesseract OCR"""
+    """Extract recipe from image using Docling OCR"""
     try:
-        image = preprocess_image_bytes(image_bytes)
-        raw_text = extract_text_with_tesseract(image)
+        raw_text = extract_text_with_docling(image_bytes)
 
         if len(raw_text) < 20:
             return {
@@ -338,7 +344,7 @@ def extract_recipe_from_image_bytes(image_bytes: bytes) -> Dict[str, Any]:
                 'errors': errors,
                 'warnings': warnings,
                 'flags': flags,
-                'ocr_engine': 'tesseract',
+                'ocr_engine': 'docling',
             }
         }
     except RuntimeError as e:
@@ -352,17 +358,18 @@ def extract_recipe_from_image_bytes(image_bytes: bytes) -> Dict[str, Any]:
 def health_check():
     """Health check endpoint"""
     ocr_status = 'unavailable'
-    if pytesseract is not None:
+    if DocumentConverter is not None:
         try:
-            pytesseract.get_tesseract_version()
-            ocr_status = 'tesseract'
+            # Test if docling can be instantiated
+            DocumentConverter()
+            ocr_status = 'docling'
         except:
             ocr_status = 'unavailable'
     
     return jsonify({
         'status': 'healthy',
         'service': 'recipe-scraper',
-        'version': '1.2.0',
+        'version': '1.3.0',
         'ocr_engine': ocr_status,
     })
 
@@ -478,7 +485,7 @@ if __name__ == '__main__':
     logger.info("  GET  /health - Health check")
     logger.info("  GET  /supported-sites - List supported recipe sites")
     logger.info("  POST /scrape - Scrape a recipe from URL")
-    logger.info("  POST /ocr - Extract recipe text from image with Tesseract OCR")
+    logger.info("  POST /ocr - Extract recipe text from image with Docling OCR")
 
     app.run(host='0.0.0.0', port=port, debug=False)
 
