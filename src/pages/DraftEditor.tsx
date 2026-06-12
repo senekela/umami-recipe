@@ -20,7 +20,7 @@ type ImportStage =
   | 'parsing'
   | 'saving'
 
-const OPENROUTER_MODELS = ['google/gemma-3-27b-it:free', 'mistralai/mistral-7b-instruct:free']
+const OPENROUTER_MODELS = ['nvidia/nemotron-3-ultra-550b-a55b:free', 'google/gemma-4-31b-it:free']
 const MAX_FILE_SIZE = 500 * 1024
 
 const OpenRouterRecipeSchema = z.object({
