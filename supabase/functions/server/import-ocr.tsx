@@ -161,14 +161,24 @@ export async function handleRecipeParse(rawText: string, githubToken: string): P
     '',
     'RÈGLES D’EXTRACTION :',
     '- Retourne UNIQUEMENT du JSON valide, sans balises markdown ni commentaire',
+    '- Respecte exactement les types du schéma JSON demandé',
+    '- Tous les champs amount, unit, name et text doivent toujours être des chaînes de caractères',
+    '- Ne retourne jamais null, number, boolean ou object pour amount, unit, name ou text',
+    '- Si une unité est absente ou inconnue, retourne "" pour unit',
+    '- Si une quantité est absente ou inconnue, retourne "" pour amount',
+    '- Si un nom d’ingrédient est partiel, retourne la meilleure chaîne possible pour name',
     '- Cherche le titre de la recette au début du texte',
     '- Extrais les ingrédients avec amount, unit et name',
     '- Extrais les étapes avec un ordre séquentiel à partir de 1',
-    '- Si un champ est inconnu, utilise null ou un tableau vide selon le schéma'
+    '- Si un champ est inconnu, utilise null ou un tableau vide selon le schéma',
+    '',
+    'EXEMPLE VALIDE D’INGRÉDIENT :',
+    '{ "amount": "1", "unit": "", "name": "oignon" }',
+    '{ "amount": "", "unit": "", "name": "sel" }'
   ].join('\n');
 
   try {
-    const response = await fetch('https://models.inference.ai.azure.com/chat/completions', {
+    const response = await fetch('https://models.github.ai/inference/chat/completions', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -182,6 +192,9 @@ export async function handleRecipeParse(rawText: string, githubToken: string): P
             role: 'user',
             content: [
               'Extrais la recette à partir de ce texte OCR.',
+              'Respecte strictement le schéma JSON demandé.',
+              'Important : chaque ingrédient doit toujours avoir des chaînes pour amount, unit et name.',
+              'Si unit est inconnu, retourne "" et jamais null.',
               '',
               'TEXTE OCR :',
               '---',

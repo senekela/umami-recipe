@@ -802,8 +802,45 @@ async function parseRecipeWithGitHubModels(rawText: string): Promise<OpenRouterR
   try {
     return OpenRouterRecipeSchema.parse(data)
   } catch (parseError) {
-    console.warn('GitHub Models JSON validation failed:', parseError)
-    return null
+    console.warn('GitHub Models JSON validation failed, attempting normalization:', parseError)
+
+    if (!data || typeof data !== 'object') {
+      return null
+    }
+
+    const candidate = data as Record<string, unknown>
+    const ingredients = Array.isArray(candidate.ingredients)
+      ? candidate.ingredients
+          .filter((ingredient): ingredient is Record<string, unknown> => !!ingredient && typeof ingredient === 'object')
+          .map((ingredient) => ({
+            amount: String(ingredient.amount ?? '').trim(),
+            unit: String(ingredient.unit ?? '').trim(),
+            name: String(ingredient.name ?? '').trim(),
+          }))
+          .filter((ingredient) => ingredient.name.length > 0)
+      : []
+
+    const steps = Array.isArray(candidate.steps)
+      ? candidate.steps
+          .filter((step): step is Record<string, unknown> => !!step && typeof step === 'object')
+          .map((step, index) => ({
+            order: Number.isFinite(Number(step.order)) ? Number(step.order) : index + 1,
+            text: String(step.text ?? '').trim(),
+          }))
+          .filter((step) => step.text.length > 0)
+      : []
+
+    const tags = Array.isArray(candidate.tags)
+      ? candidate.tags.map((tag) => String(tag).trim()).filter(Boolean)
+      : []
+
+    return {
+      title: typeof candidate.title === 'string' && candidate.title.trim() ? candidate.title.trim() : null,
+      description: typeof candidate.description === 'string' && candidate.description.trim() ? candidate.description.trim() : null,
+      ingredients,
+      steps,
+      tags,
+    }
   }
 }
 

@@ -739,8 +739,8 @@ async function parseRecipeWithGitHubModels(rawText: string): Promise<OpenRouterR
   try {
     return OpenRouterRecipeSchema.parse(data)
   } catch (parseError) {
-    console.warn('GitHub Models JSON validation failed:', parseError)
-    return null
+    console.warn('GitHub Models JSON validation failed, attempting normalization:', parseError)
+    return normalizeOpenRouterDraft(data)
   }
 }
 
