@@ -1,7 +1,7 @@
 """
 Recipe Scraper API
 A Flask-based REST API for scraping recipes from various cooking websites
-and extracting recipe text from images with Docling OCR.
+and extracting recipe text from images with EasyOCR.
 """
 
 from flask import Flask, request, jsonify
@@ -13,15 +13,17 @@ import logging
 import os
 import re
 from io import BytesIO
+import numpy as np
 
 from PIL import Image, ImageOps, ImageEnhance
 
 try:
-    from docling.document_converter import DocumentConverter
-    from docling.datamodel.base_models import InputFormat
-    from docling.datamodel.pipeline_options import PdfPipelineOptions
+    import easyocr
 except ImportError:  # pragma: no cover - handled at runtime
-    DocumentConverter = None
+    easyocr = None
+
+# Global OCR reader instance (initialized once to save memory)
+_ocr_reader = None
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -54,12 +56,20 @@ UNIT_HINT_PATTERN = re.compile(
     re.IGNORECASE,
 )
 
-def check_docling_available():
-    """Check if Docling is available"""
-    if DocumentConverter is None:
+def get_ocr_reader():
+    """Get or initialize the EasyOCR reader (singleton pattern to save memory)"""
+    global _ocr_reader
+    
+    if easyocr is None:
         raise RuntimeError(
-            'docling is not installed. Add docling to python-scraper/requirements.txt.'
+            'easyocr is not installed. Add easyocr to python-scraper/requirements.txt.'
         )
+    
+    if _ocr_reader is None:
+        # Initialize with English and French, GPU disabled for lower memory usage
+        _ocr_reader = easyocr.Reader(['en', 'fr'], gpu=False)
+    
+    return _ocr_reader
 
 
 def scrape_recipe(url: str) -> Dict[str, Any]:
@@ -117,31 +127,21 @@ def preprocess_image_bytes(image_bytes: bytes) -> Image.Image:
     return image
 
 
-def extract_text_with_docling(image_bytes: bytes) -> str:
-    """Extract text from image using Docling"""
-    check_docling_available()
+def extract_text_with_easyocr(image_bytes: bytes) -> str:
+    """Extract text from image using EasyOCR (lightweight and memory-efficient)"""
+    reader = get_ocr_reader()
     
-    # Save image bytes to a temporary file for docling
-    import tempfile
-    with tempfile.NamedTemporaryFile(suffix='.jpg', delete=False) as tmp_file:
-        tmp_file.write(image_bytes)
-        tmp_path = tmp_file.name
+    # Convert bytes to PIL Image, then to numpy array
+    image = Image.open(BytesIO(image_bytes))
+    image_np = np.array(image)
     
-    try:
-        # Initialize Docling converter
-        converter = DocumentConverter()
-        
-        # Convert the image
-        result = converter.convert(tmp_path)
-        
-        # Extract text from the document
-        text = result.document.export_to_markdown()
-        
-        return text.strip()
-    finally:
-        # Clean up temporary file
-        if os.path.exists(tmp_path):
-            os.unlink(tmp_path)
+    # Perform OCR
+    results = reader.readtext(image_np, detail=0, paragraph=True)
+    
+    # Join all text results
+    text = '\n'.join(results)
+    
+    return text.strip()
 
 
 def find_title(lines: List[str]):
@@ -263,9 +263,9 @@ def score_heuristics(lines: List[str], ingredient_count: int, step_count: int, t
 
 
 def extract_recipe_from_image_bytes(image_bytes: bytes) -> Dict[str, Any]:
-    """Extract recipe from image using Docling OCR"""
+    """Extract recipe from image using EasyOCR"""
     try:
-        raw_text = extract_text_with_docling(image_bytes)
+        raw_text = extract_text_with_easyocr(image_bytes)
 
         if len(raw_text) < 20:
             return {
@@ -344,7 +344,7 @@ def extract_recipe_from_image_bytes(image_bytes: bytes) -> Dict[str, Any]:
                 'errors': errors,
                 'warnings': warnings,
                 'flags': flags,
-                'ocr_engine': 'docling',
+                'ocr_engine': 'easyocr',
             }
         }
     except RuntimeError as e:
@@ -358,18 +358,18 @@ def extract_recipe_from_image_bytes(image_bytes: bytes) -> Dict[str, Any]:
 def health_check():
     """Health check endpoint"""
     ocr_status = 'unavailable'
-    if DocumentConverter is not None:
+    if easyocr is not None:
         try:
-            # Test if docling can be instantiated
-            DocumentConverter()
-            ocr_status = 'docling'
+            # Check if we can get the reader
+            get_ocr_reader()
+            ocr_status = 'easyocr'
         except:
             ocr_status = 'unavailable'
     
     return jsonify({
         'status': 'healthy',
         'service': 'recipe-scraper',
-        'version': '1.3.0',
+        'version': '1.4.0',
         'ocr_engine': ocr_status,
     })
 
@@ -485,7 +485,7 @@ if __name__ == '__main__':
     logger.info("  GET  /health - Health check")
     logger.info("  GET  /supported-sites - List supported recipe sites")
     logger.info("  POST /scrape - Scrape a recipe from URL")
-    logger.info("  POST /ocr - Extract recipe text from image with Docling OCR")
+    logger.info("  POST /ocr - Extract recipe text from image with EasyOCR")
 
     app.run(host='0.0.0.0', port=port, debug=False)
 

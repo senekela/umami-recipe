@@ -102,8 +102,8 @@ export async function handleOcrImport(storagePath: string, supabaseUrl: string, 
         storagePath,
       });
 
-      const normalizedError = downstreamError.includes('docling is not installed')
-        ? 'OCR service is deployed without the docling Python package. Add docling to python-scraper/requirements.txt and redeploy.'
+      const normalizedError = downstreamError.includes('easyocr is not installed')
+        ? 'OCR service is deployed without the easyocr Python package. Add easyocr to python-scraper/requirements.txt and redeploy.'
         : downstreamError;
 
       return {
