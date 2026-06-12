@@ -808,7 +808,11 @@ async function parseRecipeWithOpenRouter(rawText: string, apiKey: string): Promi
 
       if (!response.ok) {
         const errorText = await response.text()
-        console.warn(`OpenRouter ${model} failed:`, response.status, errorText)
+        if (response.status === 429) {
+          console.warn(`OpenRouter ${model} rate limited (429). Trying next model.`)
+        } else {
+          console.warn(`OpenRouter ${model} failed:`, response.status, errorText)
+        }
         continue
       }
 
@@ -816,7 +820,12 @@ async function parseRecipeWithOpenRouter(rawText: string, apiKey: string): Promi
       const content = json?.choices?.[0]?.message?.content
 
       if (!content || typeof content !== 'string') {
-        console.warn(`OpenRouter ${model} returned invalid content:`, json)
+        const apiError = json?.error?.message
+        if (apiError) {
+          console.warn(`OpenRouter ${model} returned API error:`, apiError)
+        } else {
+          console.warn(`OpenRouter ${model} returned invalid content:`, json)
+        }
         continue
       }
 
@@ -844,7 +853,7 @@ async function parseRecipeWithOpenRouter(rawText: string, apiKey: string): Promi
     }
   }
 
-  console.warn('All OpenRouter models failed. Falling back to OCR-only draft.')
+  console.warn('All OpenRouter models failed or were rate-limited. Falling back to OCR-only draft.')
   return null
 }
 
