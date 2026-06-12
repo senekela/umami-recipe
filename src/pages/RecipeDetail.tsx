@@ -29,7 +29,10 @@ export function RecipeDetail() {
     try {
       const { data, error } = await supabase
         .from('recipes')
-        .select('*')
+        .select(`
+          *,
+          publisher:profiles!owner_id(nickname)
+        `)
         .eq('slug', slug)
         .single()
 
@@ -121,7 +124,7 @@ export function RecipeDetail() {
         )}
 
         {/* Main Content Card */}
-        <Card className="rounded-[2rem] border-black/10 bg-[#fbf7ef]/80 shadow-sm backdrop-blur-xl mb-6">
+        <Card className="rounded-[2rem] border-black/10 bg-[#fbf7ef]/80 shadow-sm backdrop-blur-xl mb-8">
           <CardContent className="p-6 md:p-8">
             {/* Title and Description */}
             <div className="mb-6">
@@ -129,7 +132,21 @@ export function RecipeDetail() {
                 {recipe.title}
               </h1>
               {recipe.description && (
-                <p className="text-lg text-stone-600 leading-relaxed">{recipe.description}</p>
+                <p className="text-lg text-stone-600 leading-relaxed mb-4">{recipe.description}</p>
+              )}
+              {/* Publisher Info */}
+              {recipe.publisher && (
+                <div className="flex items-center gap-3 pt-4 border-t border-black/5">
+                  <div className="h-10 w-10 rounded-full bg-stone-950 flex items-center justify-center">
+                    <span className="text-sm font-bold text-white">
+                      {recipe.publisher.nickname?.slice(0, 1).toUpperCase() || 'U'}
+                    </span>
+                  </div>
+                  <div>
+                    <p className="text-xs text-stone-500 uppercase tracking-wider font-semibold">Recipe by</p>
+                    <p className="text-sm font-medium text-stone-950">{recipe.publisher.nickname || 'Umami cook'}</p>
+                  </div>
+                </div>
               )}
             </div>
 

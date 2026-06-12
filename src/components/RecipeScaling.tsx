@@ -193,7 +193,7 @@ export function RecipeScaling({ originalServings, ingredients, onScalingChange }
               id="anchor-ingredient"
               value={anchorIndex ?? ''}
               onChange={(e) => setAnchorIndex(e.target.value ? parseInt(e.target.value) : null)}
-              className="w-full px-4 py-3 rounded-full bg-background border border-border/30 text-primary focus:outline-none focus:ring-2 focus:ring-tertiary/20"
+              className="w-full px-5 py-4 rounded-full bg-background border border-border/30 text-primary focus:outline-none focus:ring-2 focus:ring-tertiary/20"
             >
               {eligibleAnchors.map(({ ingredient, index }) => (
                 <option key={index} value={index}>
