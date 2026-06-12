@@ -1,6 +1,7 @@
+import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { motion } from 'framer-motion'
-import { Clock, Users, Star, Bookmark } from 'lucide-react'
+import { Clock, Users, Star, Bookmark, ChevronDown } from 'lucide-react'
 import type { Recipe } from '../lib/types/recipe'
 
 const gradients = [
@@ -31,6 +32,7 @@ function getRecipeAccent(id: number) {
 
 export function RecipeCard({ recipe }: { recipe: Recipe }) {
   const publisherName = recipe.publisher?.nickname?.trim() || 'Umami cook'
+  const [isExpanded, setIsExpanded] = useState(false)
 
   return (
     <Link to={`/recipes/${recipe.slug}`} className="block group">
@@ -79,9 +81,23 @@ export function RecipeCard({ recipe }: { recipe: Recipe }) {
 
           {/* Description */}
           {recipe.description && (
-            <p className="text-sm text-stone-600 line-clamp-2 mb-4 leading-relaxed">
-              {recipe.description}
-            </p>
+            <div className="mb-4">
+              <p className={`text-sm text-stone-600 leading-relaxed ${isExpanded ? '' : 'line-clamp-5'}`}>
+                {recipe.description}
+              </p>
+              {recipe.description.length > 200 && (
+                <button
+                  onClick={(e) => {
+                    e.preventDefault()
+                    setIsExpanded(!isExpanded)
+                  }}
+                  className="mt-2 flex items-center gap-1 text-xs font-medium text-stone-600 hover:text-stone-950 transition-colors"
+                >
+                  {isExpanded ? 'Show less' : 'Read more'}
+                  <ChevronDown className={`h-3 w-3 transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
+                </button>
+              )}
+            </div>
           )}
 
           {/* Meta Information */}

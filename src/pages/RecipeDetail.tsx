@@ -9,7 +9,7 @@ import { StepList } from '../components/StepList'
 import { Layout } from '../components/Layout'
 import { RecipeScaling } from '../components/RecipeScaling'
 import { Card, CardContent } from '../app/components/ui/card'
-import { Edit, Globe, EyeOff, Users, Clock, Star, Bookmark, Share2 } from 'lucide-react'
+import { Edit, Globe, EyeOff, Users, Clock, Star, Bookmark, Share2, ChevronDown } from 'lucide-react'
 import { scaleIngredients, type ScalingState } from '../lib/recipeScaling'
 
 export function RecipeDetail() {
@@ -20,6 +20,7 @@ export function RecipeDetail() {
   const [loading, setLoading] = useState(true)
   const [scalingState, setScalingState] = useState<ScalingState | null>(null)
   const [isSaved, setIsSaved] = useState(false)
+  const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(false)
 
   useEffect(() => {
     loadRecipe()
@@ -132,7 +133,20 @@ export function RecipeDetail() {
                 {recipe.title}
               </h1>
               {recipe.description && (
-                <p className="text-lg text-stone-600 leading-relaxed mb-4">{recipe.description}</p>
+                <div className="mb-4">
+                  <p className={`text-lg text-stone-600 leading-relaxed ${isDescriptionExpanded ? '' : 'line-clamp-5'}`}>
+                    {recipe.description}
+                  </p>
+                  {recipe.description.length > 200 && (
+                    <button
+                      onClick={() => setIsDescriptionExpanded(!isDescriptionExpanded)}
+                      className="mt-2 flex items-center gap-1 text-sm font-medium text-stone-600 hover:text-stone-950 transition-colors"
+                    >
+                      {isDescriptionExpanded ? 'Show less' : 'Read more'}
+                      <ChevronDown className={`h-4 w-4 transition-transform ${isDescriptionExpanded ? 'rotate-180' : ''}`} />
+                    </button>
+                  )}
+                </div>
               )}
               {/* Publisher Info */}
               {recipe.publisher && (
