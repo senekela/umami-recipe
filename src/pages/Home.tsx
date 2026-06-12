@@ -215,7 +215,7 @@ export function Home() {
         >
           {/* Search Card */}
           <Card className="rounded-[2rem] border-black/10 bg-[#fbf7ef]/80 shadow-sm backdrop-blur-xl">
-            <CardContent className="p-4 md:p-5">
+            <CardContent className="p-3 md:p-4 !pb-3 md:!pb-4">
               <div className={`relative rounded-[1.75rem] border bg-white/70 p-2 transition ${isSearchFocused ? 'border-stone-950 shadow-xl shadow-stone-950/10' : 'border-black/10'}`}>
                 <div className="flex items-center gap-2">
                   <Search className="ml-2 h-5 w-5 text-stone-400" />
@@ -343,22 +343,29 @@ export function Home() {
                   <motion.button
                     layout
                     key={recipe.id}
-                    initial={{ opacity: 0, scale: 0.98 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    exit={{ opacity: 0, scale: 0.98 }}
+                    initial={{ opacity: 0, scale: 0.96, y: 10 }}
+                    animate={{ opacity: 1, scale: 1, y: 0 }}
+                    exit={{ opacity: 0, scale: 0.96, y: 10 }}
+                    transition={{
+                      duration: 0.3,
+                      ease: [0.4, 0, 0.2, 1],
+                      layout: { duration: 0.3 }
+                    }}
+                    whileHover={{ scale: 1.02, y: -2 }}
+                    whileTap={{ scale: 0.98 }}
                     onClick={() => {
                       setSelectedRecipe(recipe)
                       navigate(`/recipes/${recipe.slug}`)
                     }}
-                    className={`group overflow-hidden rounded-[1.75rem] border p-3 text-left transition ${
+                    className={`group overflow-hidden rounded-[1.75rem] border text-left transition-all duration-300 ${
                       selectedRecipe?.id === recipe.id
                         ? 'border-stone-950 bg-stone-950 text-white shadow-xl shadow-stone-950/15'
-                        : 'border-black/10 bg-[#fbf7ef]/75 hover:bg-white/80'
+                        : 'border-black/10 bg-[#fbf7ef]/75 hover:bg-white/90 hover:shadow-lg hover:border-stone-300'
                     }`}
                   >
-                    <div className="flex gap-4">
+                    <div className="flex gap-2 items-center p-2">
                       {recipe.image_url ? (
-                        <div className="h-24 w-24 shrink-0 rounded-[1.35rem] overflow-hidden">
+                        <div className="h-20 w-20 shrink-0 rounded-[1.35rem] overflow-hidden">
                           <img
                             src={recipe.image_url}
                             alt={recipe.title}
@@ -366,29 +373,29 @@ export function Home() {
                           />
                         </div>
                       ) : (
-                        <div className={`h-24 w-24 shrink-0 rounded-[1.35rem] bg-gradient-to-br ${getRecipeGradient(index)}`}>
+                        <div className={`h-20 w-20 shrink-0 rounded-[1.35rem] bg-gradient-to-br ${getRecipeGradient(index)}`}>
                           <div className="flex h-full items-end justify-start p-3">
                             <span className={`h-4 w-4 rounded-full ${getRecipeAccent(index)} shadow-lg`} />
                           </div>
                         </div>
                       )}
-                      <div className="min-w-0 flex-1 py-1">
+                      <div className="min-w-0 flex-1 self-start">
                         <div className="flex items-start justify-between gap-2">
                           <h3 className="line-clamp-1 text-base font-semibold tracking-tight">{recipe.title}</h3>
                           {saved.includes(recipe.id) ? <Bookmark className="h-4 w-4 shrink-0 fill-current" /> : null}
                         </div>
                         {recipe.description && (
-                          <p className={`mt-1 line-clamp-2 text-sm ${selectedRecipe?.id === recipe.id ? 'text-white/65' : 'text-stone-500'}`}>
+                          <p className={`mt-0.5 line-clamp-1 text-sm ${selectedRecipe?.id === recipe.id ? 'text-white/65' : 'text-stone-500'}`}>
                             {recipe.description}
                           </p>
                         )}
                         {/* Publisher name */}
                         {recipe.publisher && (
-                          <p className={`mt-2 text-xs ${selectedRecipe?.id === recipe.id ? 'text-white/50' : 'text-stone-400'}`}>
+                          <p className={`mt-1 text-xs ${selectedRecipe?.id === recipe.id ? 'text-white/50' : 'text-stone-400'}`}>
                             by {recipe.publisher.nickname || 'Umami cook'}
                           </p>
                         )}
-                        <div className="mt-3 flex flex-wrap gap-2 text-xs">
+                        <div className="mt-1.5 flex flex-wrap gap-2 text-xs">
                           {recipe.servings && (
                             <span className={`rounded-full px-2.5 py-1 ${selectedRecipe?.id === recipe.id ? 'bg-white/10' : 'bg-black/5'}`}>
                               {recipe.servings} servings
