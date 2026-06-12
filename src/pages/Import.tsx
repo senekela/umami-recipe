@@ -42,7 +42,6 @@ type ParsedDraft = DraftSchema & {
   flags: ImportFlag[]
 }
 
-const OPENROUTER_MODELS = ['nvidia/nemotron-3-ultra-550b-a55b:free', 'google/gemma-4-31b-it:free']
 const MAX_FILE_SIZE = 500 * 1024 // 500 KB
 
 export function Import() {
@@ -74,7 +73,6 @@ export function Import() {
   const [ocrWarnings, setOcrWarnings] = useState<string[]>([])
   const [ocrFlags, setOcrFlags] = useState<ImportFlag[]>([])
 
-  const openRouterKey = import.meta.env.VITE_OPENROUTER_KEY || ''
 
   const canConfirmPhoto = useMemo(() => {
     return !loading && !!processedBlob && !!user
@@ -309,8 +307,8 @@ export function Import() {
 
       setPhotoProgress(70)
 
-      // OpenRouter parsing with fallback chain for better structure
-      const parsedDraft = await parseRecipeWithOpenRouter(ocrResult.text, openRouterKey)
+      // Server-side GitHub Models parsing for better structure
+      const parsedDraft = await parseRecipeWithGitHubModels(ocrResult.text)
       const mergedDraft = mergeDraftData(baseDraft, parsedDraft)
 
       setOcrWarnings(mergedDraft.warnings)
@@ -724,137 +722,26 @@ function loadImage(file: File): Promise<HTMLImageElement> {
   })
 }
 
-async function parseRecipeWithOpenRouter(rawText: string, apiKey: string): Promise<OpenRouterRecipeDraft | null> {
+async function parseRecipeWithGitHubModels(rawText: string): Promise<OpenRouterRecipeDraft | null> {
   if (!rawText.trim()) {
     return null
   }
 
-  if (!apiKey) {
-    console.warn('OpenRouter API key not configured. Skipping AI parsing.')
+  const { data, error } = await callEdgeFunction<unknown>('parse-recipe', {
+    raw_text: rawText
+  })
+
+  if (error || !data) {
+    console.warn('GitHub Models parsing failed:', error || 'No data returned')
     return null
   }
 
-  // Prompt système en français avec schéma JSON explicite et consignes OCR
-  const systemPrompt = [
-    'Tu es un expert en extraction de recettes spécialisé dans l’analyse de texte issu de l’OCR.',
-    'Le texte peut contenir des erreurs OCR, des problèmes de mise en forme ou une structure ambiguë.',
-    'Ta mission est d’extraire intelligemment les informations de la recette malgré ces défauts.',
-    '',
-    'SCHÉMA JSON OBLIGATOIRE :',
-    '{',
-    '  "title": string | null,',
-    '  "description": string | null,',
-    '  "ingredients": [{ "amount": string, "unit": string, "name": string }],',
-    '  "steps": [{ "order": number, "text": string }],',
-    '  "tags": string[]',
-    '}',
-    '',
-    'RÈGLES D’EXTRACTION :',
-    '- Retourne UNIQUEMENT du JSON valide, sans balises markdown ni commentaire',
-    '- Cherche le titre de la recette au début du texte (souvent la première ligne significative)',
-    '- Identifie la section des ingrédients (peut être intitulée "Ingredients", "Ingrédients" ou ne pas avoir de titre)',
-    '- Identifie la section des étapes (peut être intitulée "Instructions", "Directions", "Steps", "Préparation", "Étapes" ou être numérotée)',
-    '- Pour les ingrédients : extrais la quantité, l’unité et le nom',
-    '- Pour les étapes : extrais les instructions dans l’ordre et numérote-les à partir de 1',
-    '- Si les sections sont ambiguës, fais la meilleure déduction possible selon le contexte',
-    '- Extrais des tags pertinents selon le type de recette (dessert, plat principal, végétarien, rapide, etc.)',
-    '- Gère proprement les erreurs OCR (par exemple "1 cup" peut apparaître comme "I cup" ou "l cup")',
-    '- Si un champ ne peut vraiment pas être extrait, utilise null pour title/description et un tableau vide pour les listes',
-    '',
-    'EXEMPLES D’ERREURS OCR À GÉRER :',
-    '- "I cup flour" → amount: "1", unit: "cup", name: "flour"',
-    '- "2OO g sugar" → amount: "200", unit: "g", name: "sugar"',
-    '- "l/2 tsp salt" → amount: "1/2", unit: "tsp", name: "salt"',
-    '- Étapes numérotées sans en-tête clair → extraire quand même comme steps',
-    '- Ingrédients sans quantité → utiliser une chaîne vide pour amount/unit'
-  ].join('\n')
-
-  // Try each model in the fallback chain
-  for (const model of OPENROUTER_MODELS) {
-    try {
-      const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${apiKey}`,
-          'HTTP-Referer': window.location.origin,
-          'X-Title': 'Umami Recipe App'
-        },
-        body: JSON.stringify({
-          model,
-          response_format: { type: 'json_object' },
-          messages: [
-            { role: 'system', content: systemPrompt },
-            {
-              role: 'user',
-              content: [
-                'Extrais la recette à partir de ce texte obtenu par OCR.',
-                'Le texte peut contenir des erreurs de reconnaissance optique de caractères.',
-                'Analyse-le intelligemment et extrais toutes les informations de recette que tu peux trouver.',
-                '',
-                'TEXTE OCR :',
-                '---',
-                rawText,
-                '---',
-                '',
-                'Retourne la recette en respectant exactement le schéma JSON requis.'
-              ].join('\n')
-            }
-          ],
-          temperature: 0.2,
-          max_tokens: 3000
-        })
-      })
-
-      if (!response.ok) {
-        const errorText = await response.text()
-        if (response.status === 429) {
-          console.warn(`OpenRouter ${model} rate limited (429). Trying next model.`)
-        } else {
-          console.warn(`OpenRouter ${model} failed:`, response.status, errorText)
-        }
-        continue
-      }
-
-      const json = await response.json()
-      const content = json?.choices?.[0]?.message?.content
-
-      if (!content || typeof content !== 'string') {
-        const apiError = json?.error?.message
-        if (apiError) {
-          console.warn(`OpenRouter ${model} returned API error:`, apiError)
-        } else {
-          console.warn(`OpenRouter ${model} returned invalid content:`, json)
-        }
-        continue
-      }
-
-      // Parse and validate with Zod
-      try {
-        const parsedJson = JSON.parse(content)
-        const validatedDraft = OpenRouterRecipeSchema.parse(parsedJson)
-        
-        console.log(`✅ Successfully parsed recipe with ${model}`)
-        console.log('Extracted:', {
-          title: validatedDraft.title,
-          ingredientCount: validatedDraft.ingredients.length,
-          stepCount: validatedDraft.steps.length,
-          tags: validatedDraft.tags
-        })
-        return validatedDraft
-      } catch (parseError) {
-        console.warn(`OpenRouter ${model} JSON parsing failed:`, parseError)
-        console.warn('Raw content:', content.substring(0, 500))
-        continue
-      }
-    } catch (error) {
-      console.warn(`OpenRouter ${model} request failed:`, error)
-      continue
-    }
+  try {
+    return OpenRouterRecipeSchema.parse(data)
+  } catch (parseError) {
+    console.warn('GitHub Models JSON validation failed:', parseError)
+    return null
   }
-
-  console.warn('All OpenRouter models failed or were rate-limited. Falling back to OCR-only draft.')
-  return null
 }
 
 function normalizeOpenRouterDraft(value: unknown): OpenRouterRecipeDraft | null {

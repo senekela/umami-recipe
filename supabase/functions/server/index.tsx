@@ -3,7 +3,7 @@ import { cors } from "npm:hono/cors";
 import { logger } from "npm:hono/logger";
 import * as kv from "./kv_store.tsx";
 import { handleUrlImport } from "./import-url.tsx";
-import { handleOcrImport } from "./import-ocr.tsx";
+import { handleOcrImport, handleRecipeParse } from "./import-ocr.tsx";
 
 const app = new Hono();
 
@@ -75,6 +75,34 @@ app.post("/make-server-b410369f/import-ocr", async (c) => {
   } catch (err) {
     console.error("OCR import error:", err);
     return c.json({ error: "Failed to process image" }, 500);
+  }
+});
+
+// OCR recipe parsing via GitHub Models
+app.post("/make-server-b410369f/parse-recipe", async (c) => {
+  try {
+    const { raw_text } = await c.req.json();
+
+    if (!raw_text) {
+      return c.json({ error: "raw_text is required" }, 400);
+    }
+
+    const githubToken = Deno.env.get('GITHUB_MODELS_TOKEN');
+
+    if (!githubToken) {
+      return c.json({ error: "GitHub Models token is not configured" }, 500);
+    }
+
+    const result = await handleRecipeParse(raw_text, githubToken);
+
+    if (result.error) {
+      return c.json({ error: result.error }, result.status);
+    }
+
+    return c.json(result.data, result.status);
+  } catch (err) {
+    console.error("Recipe parse error:", err);
+    return c.json({ error: "Failed to parse recipe text" }, 500);
   }
 });
 

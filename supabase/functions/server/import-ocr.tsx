@@ -35,6 +35,20 @@ type OcrImportResult = {
   status: number;
 };
 
+type ParsedRecipeDraft = {
+  title: string | null;
+  description: string | null;
+  ingredients: Array<{ amount: string; unit: string; name: string }>;
+  steps: Array<{ order: number; text: string }>;
+  tags: string[];
+};
+
+type RecipeParseResult = {
+  data: ParsedRecipeDraft | null;
+  error: string | null;
+  status: number;
+};
+
 export async function handleOcrImport(storagePath: string, supabaseUrl: string, serviceRoleKey: string): Promise<OcrImportResult> {
   try {
     const pythonApiUrl = Deno.env.get('PYTHON_SCRAPER_URL') || 'https://umami-recipe.onrender.com';
@@ -123,6 +137,102 @@ export async function handleOcrImport(storagePath: string, supabaseUrl: string, 
       data: null,
       error: err instanceof Error ? err.message : 'Failed to process image. Please try again.',
       partial: null,
+      status: 500
+    };
+  }
+}
+
+export async function handleRecipeParse(rawText: string, githubToken: string): Promise<RecipeParseResult> {
+  const model = 'openai/gpt-4.1-nano';
+
+  const systemPrompt = [
+    'Tu es un expert en extraction de recettes spécialisé dans l’analyse de texte issu de l’OCR.',
+    'Le texte peut contenir des erreurs OCR, des problèmes de mise en forme ou une structure ambiguë.',
+    'Ta mission est d’extraire intelligemment les informations de la recette malgré ces défauts.',
+    '',
+    'SCHÉMA JSON OBLIGATOIRE :',
+    '{',
+    '  "title": string | null,',
+    '  "description": string | null,',
+    '  "ingredients": [{ "amount": string, "unit": string, "name": string }],',
+    '  "steps": [{ "order": number, "text": string }],',
+    '  "tags": string[]',
+    '}',
+    '',
+    'RÈGLES D’EXTRACTION :',
+    '- Retourne UNIQUEMENT du JSON valide, sans balises markdown ni commentaire',
+    '- Cherche le titre de la recette au début du texte',
+    '- Extrais les ingrédients avec amount, unit et name',
+    '- Extrais les étapes avec un ordre séquentiel à partir de 1',
+    '- Si un champ est inconnu, utilise null ou un tableau vide selon le schéma'
+  ].join('\n');
+
+  try {
+    const response = await fetch('https://models.inference.ai.azure.com/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${githubToken}`,
+      },
+      body: JSON.stringify({
+        model,
+        messages: [
+          { role: 'system', content: systemPrompt },
+          {
+            role: 'user',
+            content: [
+              'Extrais la recette à partir de ce texte OCR.',
+              '',
+              'TEXTE OCR :',
+              '---',
+              rawText,
+              '---',
+              '',
+              'Retourne uniquement un objet JSON valide respectant exactement le schéma demandé.'
+            ].join('\n')
+          }
+        ],
+        temperature: 0.2,
+        max_tokens: 2000,
+        response_format: { type: 'json_object' }
+      }),
+    });
+
+    const contentType = response.headers.get('content-type') || '';
+    const isJson = contentType.includes('application/json');
+
+    if (!response.ok) {
+      const errorText = isJson ? JSON.stringify(await response.json()) : await response.text();
+      return {
+        data: null,
+        error: `GitHub Models request failed (${response.status}): ${errorText}`,
+        status: response.status === 429 ? 429 : 502
+      };
+    }
+
+    const json = await response.json();
+    const content = json?.choices?.[0]?.message?.content;
+
+    if (!content || typeof content !== 'string') {
+      return {
+        data: null,
+        error: 'GitHub Models returned an invalid response payload.',
+        status: 502
+      };
+    }
+
+    const parsed = JSON.parse(content) as ParsedRecipeDraft;
+
+    return {
+      data: parsed,
+      error: null,
+      status: 200
+    };
+  } catch (err) {
+    console.error('GitHub Models parse error:', err);
+    return {
+      data: null,
+      error: err instanceof Error ? err.message : 'Failed to parse recipe text with GitHub Models.',
       status: 500
     };
   }
