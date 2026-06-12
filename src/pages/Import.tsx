@@ -734,9 +734,12 @@ async function parseRecipeWithOpenRouter(rawText: string, apiKey: string): Promi
     return null
   }
 
-  // Enhanced system prompt with explicit JSON schema
+  // Enhanced system prompt with explicit JSON schema and OCR-specific instructions
   const systemPrompt = [
-    'You are a recipe extraction expert. Extract the recipe from the OCR text into strict JSON format.',
+    'You are a recipe extraction expert specializing in parsing OCR-extracted text.',
+    'The text may contain OCR errors, formatting issues, or unclear structure.',
+    'Your job is to intelligently extract recipe information despite these issues.',
+    '',
     'REQUIRED JSON SCHEMA:',
     '{',
     '  "title": string | null,',
@@ -745,12 +748,25 @@ async function parseRecipeWithOpenRouter(rawText: string, apiKey: string): Promi
     '  "steps": [{ "order": number, "text": string }],',
     '  "tags": string[]',
     '}',
-    'RULES:',
+    '',
+    'EXTRACTION RULES:',
     '- Return ONLY valid JSON, no markdown fences or commentary',
-    '- If a field is unknown, use null for title/description and empty arrays for ingredients/steps/tags',
-    '- Ingredients must have amount, unit, and name (use empty strings if not found)',
-    '- Steps must have sequential order numbers starting from 1',
-    '- Extract cooking-related tags (e.g., "dessert", "quick", "vegetarian")'
+    '- Look for recipe title at the beginning (usually the first substantial line)',
+    '- Find ingredients section (may be labeled "Ingredients", "Ingrédients", or unlabeled)',
+    '- Find steps section (may be labeled "Instructions", "Directions", "Steps", "Préparation", "Étapes", or numbered)',
+    '- For ingredients: extract amount (numbers/fractions), unit (cups, tbsp, g, etc), and name',
+    '- For steps: extract sequential instructions, number them starting from 1',
+    '- If sections are unclear, make your best guess based on context',
+    '- Extract relevant tags based on recipe type (dessert, main course, vegetarian, quick, etc)',
+    '- Handle OCR errors gracefully (e.g., "1 cup" might appear as "I cup" or "l cup")',
+    '- If truly unable to extract a field, use null for title/description or empty array for lists',
+    '',
+    'EXAMPLES OF OCR ISSUES TO HANDLE:',
+    '- "I cup flour" → amount: "1", unit: "cup", name: "flour"',
+    '- "2OO g sugar" → amount: "200", unit: "g", name: "sugar"',
+    '- "l/2 tsp salt" → amount: "1/2", unit: "tsp", name: "salt"',
+    '- Numbered steps without clear header → still extract as steps',
+    '- Ingredients without amounts → use empty string for amount/unit'
   ].join('\n')
 
   // Try each model in the fallback chain
@@ -769,10 +785,24 @@ async function parseRecipeWithOpenRouter(rawText: string, apiKey: string): Promi
           response_format: { type: 'json_object' },
           messages: [
             { role: 'system', content: systemPrompt },
-            { role: 'user', content: `Extract the recipe from this OCR text:\n\n${rawText}` }
+            {
+              role: 'user',
+              content: [
+                'Extract the recipe from this OCR-scanned text.',
+                'The text may contain errors from optical character recognition.',
+                'Please parse it intelligently and extract all recipe information you can find.',
+                '',
+                'OCR TEXT:',
+                '---',
+                rawText,
+                '---',
+                '',
+                'Return the recipe in the required JSON format.'
+              ].join('\n')
+            }
           ],
-          temperature: 0.3,
-          max_tokens: 2000
+          temperature: 0.2,
+          max_tokens: 3000
         })
       })
 
@@ -786,18 +816,30 @@ async function parseRecipeWithOpenRouter(rawText: string, apiKey: string): Promi
       const content = json?.choices?.[0]?.message?.content
 
       if (!content || typeof content !== 'string') {
-        console.warn(`OpenRouter ${model} returned invalid content`)
+        console.warn(`OpenRouter ${model} returned invalid content:`, json)
         continue
       }
 
       // Parse and validate with Zod
-      const parsedJson = JSON.parse(content)
-      const validatedDraft = OpenRouterRecipeSchema.parse(parsedJson)
-      
-      console.log(`✓ Successfully parsed recipe with ${model}`)
-      return validatedDraft
+      try {
+        const parsedJson = JSON.parse(content)
+        const validatedDraft = OpenRouterRecipeSchema.parse(parsedJson)
+        
+        console.log(`✅ Successfully parsed recipe with ${model}`)
+        console.log('Extracted:', {
+          title: validatedDraft.title,
+          ingredientCount: validatedDraft.ingredients.length,
+          stepCount: validatedDraft.steps.length,
+          tags: validatedDraft.tags
+        })
+        return validatedDraft
+      } catch (parseError) {
+        console.warn(`OpenRouter ${model} JSON parsing failed:`, parseError)
+        console.warn('Raw content:', content.substring(0, 500))
+        continue
+      }
     } catch (error) {
-      console.warn(`OpenRouter ${model} parsing failed:`, error)
+      console.warn(`OpenRouter ${model} request failed:`, error)
       continue
     }
   }
