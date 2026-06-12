@@ -12,7 +12,6 @@ import {
   ArrowRight,
   Clock,
   Leaf,
-  ChevronDown,
 } from 'lucide-react'
 import { useRecipes } from '../hooks/useRecipes'
 import { useAuth } from '../hooks/useAuth'
@@ -51,8 +50,6 @@ export function Home() {
   const [isSearchFocused, setIsSearchFocused] = useState(false)
   const [selectedRecipe, setSelectedRecipe] = useState<Recipe | null>(null)
   const [quickFilterActive, setQuickFilterActive] = useState<'fast' | 'vegetarian' | null>(null)
-  const [expandedDescriptions, setExpandedDescriptions] = useState<Set<number>>(new Set())
-
   const { recipes, loading, error } = useRecipes({})
 
   const normalizedQuery = query.trim().toLowerCase()
@@ -387,35 +384,9 @@ export function Home() {
                           {saved.includes(recipe.id) ? <Bookmark className="h-3.5 w-3.5 sm:h-4 sm:w-4 shrink-0 fill-current" /> : null}
                         </div>
                         {recipe.description && (
-                          <div className="mt-0.5">
-                            <p className={`text-xs sm:text-sm ${expandedDescriptions.has(recipe.id) ? '' : 'line-clamp-5'} ${selectedRecipe?.id === recipe.id ? 'text-white/65' : 'text-stone-500'}`}>
-                              {recipe.description}
-                            </p>
-                            {recipe.description.length > 200 && (
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation()
-                                  setExpandedDescriptions(prev => {
-                                    const next = new Set(prev)
-                                    if (next.has(recipe.id)) {
-                                      next.delete(recipe.id)
-                                    } else {
-                                      next.add(recipe.id)
-                                    }
-                                    return next
-                                  })
-                                }}
-                                className={`mt-1 flex items-center gap-0.5 sm:gap-1 text-[10px] sm:text-xs font-medium transition-colors ${
-                                  selectedRecipe?.id === recipe.id
-                                    ? 'text-white/80 hover:text-white'
-                                    : 'text-stone-600 hover:text-stone-950'
-                                }`}
-                              >
-                                {expandedDescriptions.has(recipe.id) ? 'Show less' : 'Read more'}
-                                <ChevronDown className={`h-2.5 w-2.5 sm:h-3 sm:w-3 transition-transform ${expandedDescriptions.has(recipe.id) ? 'rotate-180' : ''}`} />
-                              </button>
-                            )}
-                          </div>
+                          <p className={`mt-0.5 text-xs sm:text-sm line-clamp-1 ${selectedRecipe?.id === recipe.id ? 'text-white/65' : 'text-stone-500'}`}>
+                            {recipe.description}
+                          </p>
                         )}
                         {/* Publisher name */}
                         {recipe.publisher && (
