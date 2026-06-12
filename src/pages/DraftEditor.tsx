@@ -794,8 +794,8 @@ async function parseRecipeWithOpenRouter(rawText: string, apiKey: string): Promi
   }
 
   const systemPrompt = [
-    'You are a recipe extraction expert. Extract the recipe from the OCR text into strict JSON format.',
-    'REQUIRED JSON SCHEMA:',
+    'Tu es un expert en extraction de recettes. Extrais la recette à partir du texte OCR dans un format JSON strict.',
+    'SCHÉMA JSON OBLIGATOIRE :',
     '{',
     '  "title": string | null,',
     '  "description": string | null,',
@@ -803,12 +803,12 @@ async function parseRecipeWithOpenRouter(rawText: string, apiKey: string): Promi
     '  "steps": [{ "order": number, "text": string }],',
     '  "tags": string[]',
     '}',
-    'RULES:',
-    '- Return ONLY valid JSON, no markdown fences or commentary',
-    '- If a field is unknown, use null for title/description and empty arrays for ingredients/steps/tags',
-    '- Ingredients must have amount, unit, and name (use empty strings if not found)',
-    '- Steps must have sequential order numbers starting from 1',
-    '- Extract cooking-related tags'
+    'RÈGLES :',
+    '- Retourne UNIQUEMENT du JSON valide, sans balises markdown ni commentaire',
+    '- Si un champ est inconnu, utilise null pour title/description et des tableaux vides pour ingredients/steps/tags',
+    '- Chaque ingrédient doit contenir amount, unit et name (utilise des chaînes vides si nécessaire)',
+    '- Les étapes doivent avoir des numéros d’ordre séquentiels à partir de 1',
+    '- Extrais des tags liés à la cuisine et au type de recette'
   ].join('\n')
 
   for (const model of OPENROUTER_MODELS) {
@@ -826,7 +826,7 @@ async function parseRecipeWithOpenRouter(rawText: string, apiKey: string): Promi
           response_format: { type: 'json_object' },
           messages: [
             { role: 'system', content: systemPrompt },
-            { role: 'user', content: `Extract the recipe from this OCR text:\n\n${rawText}` }
+            { role: 'user', content: `Extrais la recette à partir de ce texte OCR :\n\n${rawText}` }
           ],
           temperature: 0.3,
           max_tokens: 2000

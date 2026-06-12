@@ -734,13 +734,13 @@ async function parseRecipeWithOpenRouter(rawText: string, apiKey: string): Promi
     return null
   }
 
-  // Enhanced system prompt with explicit JSON schema and OCR-specific instructions
+  // Prompt système en français avec schéma JSON explicite et consignes OCR
   const systemPrompt = [
-    'You are a recipe extraction expert specializing in parsing OCR-extracted text.',
-    'The text may contain OCR errors, formatting issues, or unclear structure.',
-    'Your job is to intelligently extract recipe information despite these issues.',
+    'Tu es un expert en extraction de recettes spécialisé dans l’analyse de texte issu de l’OCR.',
+    'Le texte peut contenir des erreurs OCR, des problèmes de mise en forme ou une structure ambiguë.',
+    'Ta mission est d’extraire intelligemment les informations de la recette malgré ces défauts.',
     '',
-    'REQUIRED JSON SCHEMA:',
+    'SCHÉMA JSON OBLIGATOIRE :',
     '{',
     '  "title": string | null,',
     '  "description": string | null,',
@@ -749,24 +749,24 @@ async function parseRecipeWithOpenRouter(rawText: string, apiKey: string): Promi
     '  "tags": string[]',
     '}',
     '',
-    'EXTRACTION RULES:',
-    '- Return ONLY valid JSON, no markdown fences or commentary',
-    '- Look for recipe title at the beginning (usually the first substantial line)',
-    '- Find ingredients section (may be labeled "Ingredients", "Ingrédients", or unlabeled)',
-    '- Find steps section (may be labeled "Instructions", "Directions", "Steps", "Préparation", "Étapes", or numbered)',
-    '- For ingredients: extract amount (numbers/fractions), unit (cups, tbsp, g, etc), and name',
-    '- For steps: extract sequential instructions, number them starting from 1',
-    '- If sections are unclear, make your best guess based on context',
-    '- Extract relevant tags based on recipe type (dessert, main course, vegetarian, quick, etc)',
-    '- Handle OCR errors gracefully (e.g., "1 cup" might appear as "I cup" or "l cup")',
-    '- If truly unable to extract a field, use null for title/description or empty array for lists',
+    'RÈGLES D’EXTRACTION :',
+    '- Retourne UNIQUEMENT du JSON valide, sans balises markdown ni commentaire',
+    '- Cherche le titre de la recette au début du texte (souvent la première ligne significative)',
+    '- Identifie la section des ingrédients (peut être intitulée "Ingredients", "Ingrédients" ou ne pas avoir de titre)',
+    '- Identifie la section des étapes (peut être intitulée "Instructions", "Directions", "Steps", "Préparation", "Étapes" ou être numérotée)',
+    '- Pour les ingrédients : extrais la quantité, l’unité et le nom',
+    '- Pour les étapes : extrais les instructions dans l’ordre et numérote-les à partir de 1',
+    '- Si les sections sont ambiguës, fais la meilleure déduction possible selon le contexte',
+    '- Extrais des tags pertinents selon le type de recette (dessert, plat principal, végétarien, rapide, etc.)',
+    '- Gère proprement les erreurs OCR (par exemple "1 cup" peut apparaître comme "I cup" ou "l cup")',
+    '- Si un champ ne peut vraiment pas être extrait, utilise null pour title/description et un tableau vide pour les listes',
     '',
-    'EXAMPLES OF OCR ISSUES TO HANDLE:',
+    'EXEMPLES D’ERREURS OCR À GÉRER :',
     '- "I cup flour" → amount: "1", unit: "cup", name: "flour"',
     '- "2OO g sugar" → amount: "200", unit: "g", name: "sugar"',
     '- "l/2 tsp salt" → amount: "1/2", unit: "tsp", name: "salt"',
-    '- Numbered steps without clear header → still extract as steps',
-    '- Ingredients without amounts → use empty string for amount/unit'
+    '- Étapes numérotées sans en-tête clair → extraire quand même comme steps',
+    '- Ingrédients sans quantité → utiliser une chaîne vide pour amount/unit'
   ].join('\n')
 
   // Try each model in the fallback chain
@@ -788,16 +788,16 @@ async function parseRecipeWithOpenRouter(rawText: string, apiKey: string): Promi
             {
               role: 'user',
               content: [
-                'Extract the recipe from this OCR-scanned text.',
-                'The text may contain errors from optical character recognition.',
-                'Please parse it intelligently and extract all recipe information you can find.',
+                'Extrais la recette à partir de ce texte obtenu par OCR.',
+                'Le texte peut contenir des erreurs de reconnaissance optique de caractères.',
+                'Analyse-le intelligemment et extrais toutes les informations de recette que tu peux trouver.',
                 '',
-                'OCR TEXT:',
+                'TEXTE OCR :',
                 '---',
                 rawText,
                 '---',
                 '',
-                'Return the recipe in the required JSON format.'
+                'Retourne la recette en respectant exactement le schéma JSON requis.'
               ].join('\n')
             }
           ],
@@ -944,4 +944,3 @@ function mergeDraftData(baseDraft: ParsedDraft, parsedDraft: OpenRouterRecipeDra
   }
 }
 
-// Made with Bob
