@@ -8,6 +8,7 @@ import { Progress } from '../app/components/ui/progress'
 import { Alert, AlertDescription, AlertTitle } from '../app/components/ui/alert'
 import type { DraftSchema, ImportFlag } from '../lib/types/recipe'
 import { z } from 'zod'
+import { extractTextFromImage, parseRecipeText } from '../lib/ocr'
 
 type ImportStage =
   | 'idle'
@@ -232,41 +233,85 @@ export function Import() {
     setOcrFlags([])
 
     try {
-      setPhotoStage('uploading')
-      setPhotoProgress(15)
-
-      const uploadFile = new File([processedBlob], processedFileName, { type: processedBlob.type || 'image/jpeg' })
-      const filePath = `${user.id}/${Date.now()}-${processedFileName}`
-
-      const { error: uploadError } = await supabase.storage
-        .from('ocr-uploads')
-        .upload(filePath, uploadFile, { upsert: false })
-
-      if (uploadError) {
-        throw new Error(`Upload failed: ${uploadError.message}. Please check your connection and try again.`)
-      }
-
       setPhotoStage('ocr')
-      setPhotoProgress(45)
+      setPhotoProgress(20)
 
-      const { data: ocrData, error: edgeError } = await callEdgeFunction<ParsedDraft>('import-ocr', {
-        storage_path: filePath
+      // Perform client-side OCR with tesseract.js
+      const ocrResult = await extractTextFromImage(processedBlob, (progress) => {
+        setPhotoProgress(20 + progress.progress * 0.4) // 20-60%
       })
 
-      if (edgeError || !ocrData) {
-        const errorMsg = edgeError || 'Failed to process image'
-        if (errorMsg.includes('clearer') || errorMsg.includes('contrast')) {
-          throw new Error('OCR could not read the text clearly. Try retaking the photo with better lighting and focus.')
-        }
-        throw new Error(`OCR processing failed: ${errorMsg}`)
+      if (!ocrResult.text || ocrResult.text.length < 20) {
+        throw new Error('Could not extract enough text. Try a clearer, higher-contrast photo of the recipe page.')
       }
 
-      setPhotoProgress(68)
+      setPhotoProgress(65)
       setPhotoStage('parsing')
 
-      // OpenRouter parsing with fallback chain
-      const parsedDraft = await parseRecipeWithOpenRouter(ocrData.raw_text || '', openRouterKey)
-      const mergedDraft = mergeDraftData(ocrData, parsedDraft)
+      // Parse basic structure from OCR text
+      const basicParsed = parseRecipeText(ocrResult.text)
+
+      // Create base draft with OCR results
+      const warnings: string[] = []
+      const flags: ImportFlag[] = []
+      const errors: string[] = []
+
+      if (ocrResult.confidence < 0.7) {
+        warnings.push('OCR confidence is moderate. Review the extracted text carefully.')
+        flags.push({
+          field: 'general',
+          severity: 'warning',
+          message: `OCR confidence is ${Math.round(ocrResult.confidence * 100)}%, below the recommended threshold.`,
+        })
+      }
+
+      if (!basicParsed.title || basicParsed.title.length < 4) {
+        warnings.push('Title may be incomplete.')
+        flags.push({
+          field: 'title',
+          severity: 'warning',
+          message: 'Could not confidently identify the recipe title.',
+        })
+      }
+
+      if (basicParsed.ingredients.length === 0) {
+        warnings.push('No ingredient lines were confidently extracted.')
+        flags.push({
+          field: 'ingredients',
+          severity: 'error',
+          message: 'Ingredients section could not be confidently detected.',
+        })
+      }
+
+      if (basicParsed.steps.length === 0) {
+        warnings.push('No preparation steps were confidently extracted.')
+        flags.push({
+          field: 'steps',
+          severity: 'error',
+          message: 'Steps section could not be confidently detected.',
+        })
+      }
+
+      const baseDraft: ParsedDraft = {
+        title: basicParsed.title,
+        description: null,
+        image_url: null,
+        source_url: null,
+        ingredients: basicParsed.ingredients,
+        steps: basicParsed.steps,
+        tags: [],
+        confidence: ocrResult.confidence,
+        raw_text: ocrResult.text,
+        errors,
+        warnings,
+        flags,
+      }
+
+      setPhotoProgress(70)
+
+      // OpenRouter parsing with fallback chain for better structure
+      const parsedDraft = await parseRecipeWithOpenRouter(ocrResult.text, openRouterKey)
+      const mergedDraft = mergeDraftData(baseDraft, parsedDraft)
 
       setOcrWarnings(mergedDraft.warnings)
       setOcrFlags(mergedDraft.flags)
@@ -473,9 +518,8 @@ export function Import() {
                 <p className="text-sm text-primary/60">
                   {photoStage === 'preparing' && 'Optimizing contrast and converting to OCR-friendly image…'}
                   {photoStage === 'ready' && 'Preview the processed image and confirm when it looks readable.'}
-                  {photoStage === 'uploading' && 'Uploading processed image…'}
-                  {photoStage === 'ocr' && 'Recognizing text from the recipe page…'}
-                  {photoStage === 'parsing' && 'Parsing recipe structure with OpenRouter…'}
+                  {photoStage === 'ocr' && 'Recognizing text with Tesseract.js (client-side)…'}
+                  {photoStage === 'parsing' && 'Parsing recipe structure with AI…'}
                   {photoStage === 'saving' && 'Saving draft for review…'}
                 </p>
               </div>

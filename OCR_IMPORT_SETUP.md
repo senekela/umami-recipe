@@ -4,9 +4,10 @@ This guide explains how to set up and use the photo-based recipe import feature 
 
 ## Features
 
-- ✅ **HEIC Support** - Automatically converts iPhone HEIC photos to PNG
+- ✅ **Client-Side OCR** - Uses Tesseract.js for fast, privacy-focused text extraction
+- ✅ **No Backend Required** - OCR runs entirely in your browser
+- ✅ **Multi-Language Support** - Recognizes both French and English text
 - ✅ **Smart Compression** - Reduces images to ≤500 KB while maintaining OCR quality
-- ✅ **Tesseract.js OCR** - Extracts text from recipe photos
 - ✅ **AI Parsing** - Uses OpenRouter's free models to structure recipe data
 - ✅ **Fallback Chain** - Tries multiple models for best results
 - ✅ **Manual Review** - Highlights uncertain fields for user verification
@@ -47,17 +48,15 @@ npm run dev
 ### Import Flow
 
 ```
-User uploads photo (HEIC/JPG/PNG)
-    ↓
-Convert HEIC → PNG (if needed)
+User uploads photo (JPG/PNG)
     ↓
 Enhance contrast & grayscale
     ↓
 Compress to ≤500 KB
     ↓
-Upload to Supabase Storage
+Client-side Tesseract.js OCR extraction
     ↓
-Tesseract.js OCR extraction
+Basic recipe parsing (ingredients, steps)
     ↓
 OpenRouter AI parsing (gemma-3-27b)
     ↓
@@ -67,6 +66,12 @@ Save draft with flags
     ↓
 User reviews in DraftEditor
 ```
+
+**Key Improvements:**
+- ⚡ **Faster**: No server round-trip for OCR
+- 🔒 **Private**: Images never leave your browser
+- 💰 **Cost-effective**: No backend OCR processing costs
+- 🌐 **Offline-capable**: OCR works without internet (after initial load)
 
 ### AI Models Used
 
@@ -142,11 +147,13 @@ Review and correct any flagged fields before publishing.
 
 **Solution**: Add `NEXT_PUBLIC_OPENROUTER_KEY` to `.env.local` and restart the dev server.
 
-### "Failed to convert HEIC image"
+### "OCR failed" or "Could not extract enough text"
 
-**Solution**: 
-- Try converting the HEIC to JPG on your device first
-- Or use a different photo format
+**Solution**:
+- Ensure the photo is clear and in focus
+- Use good lighting without shadows or glare
+- Make sure text is large enough and readable
+- Try preprocessing the image (increase contrast) before upload
 
 ### "Unable to compress image to required size"
 
@@ -154,6 +161,14 @@ Review and correct any flagged fields before publishing.
 - Use a smaller image
 - Crop the image to just the recipe
 - Reduce image resolution before uploading
+
+### Tesseract.js takes a long time to load
+
+**Solution**:
+- First-time load downloads language data (~2-3 MB)
+- Subsequent uses are much faster (cached)
+- This is normal for client-side OCR
+- Consider showing a loading indicator
 
 ### "Low OCR confidence"
 
@@ -182,17 +197,23 @@ Review and correct any flagged fields before publishing.
 
 ### Dependencies
 
-- `heic2any` - Browser-based HEIC conversion
-- `tesseract.js` - OCR engine
-- `zod` - Runtime validation
-- `@supabase/supabase-js` - Storage and database
+- `tesseract.js` - Client-side OCR engine with French & English support
+- `zod` - Runtime validation for AI responses
+- `@supabase/supabase-js` - Database storage
 
-### Storage
+### Technical Details
 
-Photos are stored in the `ocr-uploads` Supabase Storage bucket:
-- Path: `{user_id}/{timestamp}-{filename}`
-- Format: JPEG (after processing)
-- Max size: 500 KB
+**Tesseract.js Configuration:**
+- Languages: French + English (`fra+eng`)
+- Mode: Client-side processing (no server required)
+- Worker: Reusable worker instance for performance
+- Progress tracking: Real-time OCR progress updates
+
+**Image Processing:**
+- Max size: 500 KB (compressed automatically)
+- Format: JPEG (optimized for OCR)
+- Preprocessing: Contrast enhancement and grayscale conversion
+- Resolution: Scaled to max 1600px width for optimal OCR
 
 ### Database
 

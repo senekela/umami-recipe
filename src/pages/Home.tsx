@@ -382,6 +382,12 @@ export function Home() {
                             {recipe.description}
                           </p>
                         )}
+                        {/* Publisher name */}
+                        {recipe.publisher && (
+                          <p className={`mt-2 text-xs ${selectedRecipe?.id === recipe.id ? 'text-white/50' : 'text-stone-400'}`}>
+                            by {recipe.publisher.nickname || 'Umami cook'}
+                          </p>
+                        )}
                         <div className="mt-3 flex flex-wrap gap-2 text-xs">
                           {recipe.servings && (
                             <span className={`rounded-full px-2.5 py-1 ${selectedRecipe?.id === recipe.id ? 'bg-white/10' : 'bg-black/5'}`}>
