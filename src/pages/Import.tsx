@@ -74,7 +74,7 @@ export function Import() {
   const [ocrWarnings, setOcrWarnings] = useState<string[]>([])
   const [ocrFlags, setOcrFlags] = useState<ImportFlag[]>([])
 
-  const openRouterKey = (import.meta as ImportMeta & { env?: Record<string, string> }).env?.NEXT_PUBLIC_OPENROUTER_KEY || ''
+  const openRouterKey = import.meta.env.VITE_OPENROUTER_KEY || ''
 
   const canConfirmPhoto = useMemo(() => {
     return !loading && !!processedBlob && !!user
