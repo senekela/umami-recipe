@@ -41,7 +41,7 @@ export function RecipeCard({ recipe }: { recipe: Recipe }) {
         animate={{ opacity: 1, y: 0 }}
         whileHover={{ y: -4 }}
         transition={{ duration: 0.2 }}
-        className="overflow-hidden rounded-[2rem] border border-black/10 bg-[#fbf7ef]/80 shadow-sm backdrop-blur-xl hover:shadow-xl hover:border-stone-950/20 transition-all"
+        className="overflow-hidden rounded-[1.5rem] sm:rounded-[2rem] border border-black/10 bg-[#fbf7ef]/80 shadow-sm backdrop-blur-xl hover:shadow-xl hover:border-stone-950/20 transition-all"
       >
         {/* Recipe Image or Gradient */}
         {recipe.image_url ? (
@@ -62,9 +62,9 @@ export function RecipeCard({ recipe }: { recipe: Recipe }) {
         )}
 
         {/* Card Content */}
-        <div className="p-5 md:p-6">
-          <div className="flex items-start justify-between gap-3 mb-3">
-            <h3 className="font-display text-xl font-semibold tracking-tight text-stone-950 line-clamp-2 flex-1">
+        <div className="p-4 sm:p-5 md:p-6">
+          <div className="flex items-start justify-between gap-2 sm:gap-3 mb-2.5 sm:mb-3">
+            <h3 className="font-display text-lg sm:text-xl font-semibold tracking-tight text-stone-950 line-clamp-2 flex-1 min-w-0">
               {recipe.title}
             </h3>
             <button
@@ -72,17 +72,17 @@ export function RecipeCard({ recipe }: { recipe: Recipe }) {
                 e.preventDefault()
                 // Handle bookmark
               }}
-              className="grid h-9 w-9 shrink-0 place-items-center rounded-full border border-black/10 bg-white/55 backdrop-blur transition hover:bg-white hover:border-stone-950"
+              className="grid h-8 w-8 sm:h-9 sm:w-9 shrink-0 place-items-center rounded-full border border-black/10 bg-white/55 backdrop-blur transition hover:bg-white hover:border-stone-950"
               aria-label="Save recipe"
             >
-              <Bookmark className="h-4 w-4 text-stone-700" />
+              <Bookmark className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-stone-700" />
             </button>
           </div>
 
           {/* Description */}
           {recipe.description && (
-            <div className="mb-4">
-              <p className={`text-sm text-stone-600 leading-relaxed ${isExpanded ? '' : 'line-clamp-5'}`}>
+            <div className="mb-3 sm:mb-4">
+              <p className={`text-xs sm:text-sm text-stone-600 leading-relaxed ${isExpanded ? '' : 'line-clamp-5'}`}>
                 {recipe.description}
               </p>
               {recipe.description.length > 200 && (
@@ -91,42 +91,42 @@ export function RecipeCard({ recipe }: { recipe: Recipe }) {
                     e.preventDefault()
                     setIsExpanded(!isExpanded)
                   }}
-                  className="mt-2 flex items-center gap-1 text-xs font-medium text-stone-600 hover:text-stone-950 transition-colors"
+                  className="mt-1.5 sm:mt-2 flex items-center gap-0.5 sm:gap-1 text-[10px] sm:text-xs font-medium text-stone-600 hover:text-stone-950 transition-colors"
                 >
                   {isExpanded ? 'Show less' : 'Read more'}
-                  <ChevronDown className={`h-3 w-3 transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
+                  <ChevronDown className={`h-2.5 w-2.5 sm:h-3 sm:w-3 transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
                 </button>
               )}
             </div>
           )}
 
           {/* Meta Information */}
-          <div className="flex flex-wrap gap-2 mb-4">
+          <div className="flex flex-wrap gap-1.5 sm:gap-2 mb-3 sm:mb-4">
             {recipe.servings && (
-              <div className="flex items-center gap-1.5 rounded-full bg-white/70 px-3 py-1.5 text-xs text-stone-700">
-                <Users className="h-3.5 w-3.5" />
+              <div className="flex items-center gap-1 sm:gap-1.5 rounded-full bg-white/70 px-2.5 sm:px-3 py-1 sm:py-1.5 text-[10px] sm:text-xs text-stone-700 whitespace-nowrap">
+                <Users className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
                 <span className="font-medium">{recipe.servings}</span>
               </div>
             )}
-            <div className="flex items-center gap-1.5 rounded-full bg-white/70 px-3 py-1.5 text-xs text-stone-700">
-              <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400" />
+            <div className="flex items-center gap-1 sm:gap-1.5 rounded-full bg-white/70 px-2.5 sm:px-3 py-1 sm:py-1.5 text-[10px] sm:text-xs text-stone-700 whitespace-nowrap">
+              <Star className="h-3 w-3 sm:h-3.5 sm:w-3.5 fill-amber-400 text-amber-400" />
               <span className="font-medium">4.8</span>
             </div>
           </div>
 
           {/* Tags */}
           {recipe.tags.length > 0 && (
-            <div className="flex flex-wrap gap-2 pt-2 border-t border-black/5">
+            <div className="flex flex-wrap gap-1.5 sm:gap-2 pt-2 border-t border-black/5">
               {recipe.tags.slice(0, 3).map((tag) => (
                 <span
                   key={tag}
-                  className="text-[10px] px-2.5 py-1 bg-stone-950 text-white rounded-full font-semibold uppercase tracking-wider"
+                  className="text-[9px] sm:text-[10px] px-2 sm:px-2.5 py-0.5 sm:py-1 bg-stone-950 text-white rounded-full font-semibold uppercase tracking-wider truncate max-w-[80px] sm:max-w-none"
                 >
                   {tag}
                 </span>
               ))}
               {recipe.tags.length > 3 && (
-                <span className="text-[10px] px-2.5 py-1 bg-stone-200 text-stone-600 rounded-full font-semibold">
+                <span className="text-[9px] sm:text-[10px] px-2 sm:px-2.5 py-0.5 sm:py-1 bg-stone-200 text-stone-600 rounded-full font-semibold whitespace-nowrap">
                   +{recipe.tags.length - 3}
                 </span>
               )}
@@ -134,14 +134,14 @@ export function RecipeCard({ recipe }: { recipe: Recipe }) {
           )}
 
           {/* Publisher Badge */}
-          <div className="mt-4 pt-3 border-t border-black/5">
-            <div className="flex items-center gap-2">
-              <div className="h-6 w-6 rounded-full bg-stone-950 flex items-center justify-center">
-                <span className="text-[10px] font-bold text-white">
+          <div className="mt-3 sm:mt-4 pt-2.5 sm:pt-3 border-t border-black/5">
+            <div className="flex items-center gap-1.5 sm:gap-2">
+              <div className="h-5 w-5 sm:h-6 sm:w-6 rounded-full bg-stone-950 flex items-center justify-center flex-shrink-0">
+                <span className="text-[9px] sm:text-[10px] font-bold text-white">
                   {publisherName.slice(0, 1).toUpperCase()}
                 </span>
               </div>
-              <span className="text-xs text-stone-500 font-medium">
+              <span className="text-[10px] sm:text-xs text-stone-500 font-medium truncate">
                 by {publisherName}
               </span>
             </div>

@@ -65,10 +65,10 @@ export function Layout({
         <div className="absolute bottom-0 left-1/3 h-80 w-80 rounded-full bg-[#EFD6A8] blur-3xl" />
       </div>
 
-      <section className="relative mx-auto flex w-full max-w-7xl flex-col gap-6 px-4 py-4 sm:px-6 lg:px-8">
+      <section className="relative mx-auto flex w-full max-w-7xl flex-col gap-4 sm:gap-6 px-3 sm:px-4 py-3 sm:py-4 lg:px-8">
         {/* Modern rounded navigation bar */}
-        <nav className="sticky top-4 z-40 flex items-center justify-between rounded-[2rem] border border-black/10 bg-[#fbf7ef]/75 px-4 py-3 shadow-sm backdrop-blur-xl">
-          <div className="flex items-center gap-3">
+        <nav className="sticky top-3 sm:top-4 z-40 flex items-center justify-between rounded-[1.5rem] sm:rounded-[2rem] border border-black/10 bg-[#fbf7ef]/75 px-3 sm:px-4 py-2.5 sm:py-3 shadow-sm backdrop-blur-xl">
+          <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-shrink">
             {showBack ? (
               <button
                 onClick={handleBack}
@@ -78,24 +78,24 @@ export function Layout({
                 <ArrowLeft className="h-5 w-5" />
               </button>
             ) : (
-              <Link to="/" className="flex items-center gap-3 group" aria-label="Umami home">
-                <div className="grid h-10 w-10 place-items-center rounded-2xl bg-stone-950 text-[#F6F1E8] shadow-lg shadow-stone-950/15">
-                  <ChefHat className="h-5 w-5" />
+              <Link to="/" className="flex items-center gap-2 sm:gap-3 group min-w-0" aria-label="Umami home">
+                <div className="grid h-9 w-9 sm:h-10 sm:w-10 place-items-center rounded-xl sm:rounded-2xl bg-stone-950 text-[#F6F1E8] shadow-lg shadow-stone-950/15 flex-shrink-0">
+                  <ChefHat className="h-4 w-4 sm:h-5 sm:w-5" />
                 </div>
-                <div>
-                  <p className="text-sm font-semibold tracking-[-0.03em]" style={{ fontFamily: 'UberMove, "Uber Move", "Uber Move Text", Inter, system-ui, sans-serif' }}>
+                <div className="hidden sm:block min-w-0">
+                  <p className="text-sm font-semibold tracking-[-0.03em] truncate" style={{ fontFamily: 'UberMove, "Uber Move", "Uber Move Text", Inter, system-ui, sans-serif' }}>
                     Umami
                   </p>
-                  <p className="text-xs text-stone-500">Cook smarter, not harder</p>
+                  <p className="text-xs text-stone-500 truncate">Cook smarter, not harder</p>
                 </div>
               </Link>
             )}
           </div>
 
           {/* Quick filter buttons or custom right slot */}
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5 sm:gap-2 flex-shrink-0">
             {quickFilters ? (
-              <div className="hidden items-center gap-2 md:flex">
+              <div className="hidden items-center gap-1.5 sm:gap-2 lg:flex">
                 {quickFilters.map((filter) => {
                   const Icon = filter.icon
                   return (
@@ -119,22 +119,24 @@ export function Layout({
             {/* Add Recipe Button */}
             <Link
               to="/import"
-              className="rounded-full bg-stone-950 px-5 py-2.5 text-sm font-medium text-[#F6F1E8] hover:bg-stone-800 transition-colors flex items-center gap-2"
+              className="rounded-full bg-stone-950 px-3 sm:px-5 py-2 sm:py-2.5 text-xs sm:text-sm font-medium text-[#F6F1E8] hover:bg-stone-800 transition-colors flex items-center gap-1.5 sm:gap-2 whitespace-nowrap"
             >
-              <Plus className="h-4 w-4" /> Add recipe
+              <Plus className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+              <span className="hidden xs:inline">Add recipe</span>
+              <span className="xs:hidden">Add</span>
             </Link>
 
             {/* Avatar Button */}
             {showAvatar && (
               <button
                 onClick={handleAvatarClick}
-                className="grid h-10 w-10 place-items-center rounded-full bg-stone-950 text-white hover:bg-stone-800 transition-colors overflow-hidden ring-2 ring-white/50"
+                className="grid h-9 w-9 sm:h-10 sm:w-10 place-items-center rounded-full bg-stone-950 text-white hover:bg-stone-800 transition-colors overflow-hidden ring-2 ring-white/50 flex-shrink-0"
                 aria-label="Go to profile"
               >
                 {avatarUrl ? (
                   <img src={avatarUrl} alt="Profile" className="h-full w-full object-cover" />
                 ) : (
-                  <User className="h-5 w-5" />
+                  <User className="h-4 w-4 sm:h-5 sm:w-5" />
                 )}
               </button>
             )}
@@ -145,17 +147,17 @@ export function Layout({
         {banner && <div>{banner}</div>}
 
         {/* Main content */}
-        <main className={`flex-1 w-full ${contained ? '' : ''} ${hideNav ? '' : 'pb-24 md:pb-6'}`}>
+        <main className={`flex-1 w-full ${contained ? '' : ''} ${hideNav ? '' : 'pb-20 sm:pb-24 md:pb-6'}`}>
           {children}
         </main>
 
         {/* Mobile bottom navigation */}
         {!hideNav && (
           <nav
-            className="md:hidden fixed bottom-4 left-4 right-4 z-50 rounded-[2rem] border border-black/10 bg-[#fbf7ef]/95 backdrop-blur-xl shadow-xl"
+            className="md:hidden fixed bottom-3 sm:bottom-4 left-3 right-3 sm:left-4 sm:right-4 z-50 rounded-[1.5rem] sm:rounded-[2rem] border border-black/10 bg-[#fbf7ef]/95 backdrop-blur-xl shadow-xl"
             aria-label="Main"
           >
-            <div className="flex justify-around items-stretch h-16 min-h-[64px] px-2">
+            <div className="flex justify-around items-stretch h-14 sm:h-16 min-h-[56px] sm:min-h-[64px] px-1 sm:px-2">
               {NAV_ITEMS.map((item) => {
                 const active = item.match(location.pathname)
                 const Icon = item.icon
@@ -164,12 +166,12 @@ export function Layout({
                     key={item.to}
                     to={item.to}
                     aria-current={active ? 'page' : undefined}
-                    className={`flex flex-col items-center justify-center flex-1 gap-1 transition-colors rounded-2xl ${
+                    className={`flex flex-col items-center justify-center flex-1 gap-0.5 sm:gap-1 transition-colors rounded-xl sm:rounded-2xl ${
                       active ? 'text-stone-950' : 'text-stone-500'
                     }`}
                   >
-                    <Icon size={22} strokeWidth={active ? 2.5 : 2} />
-                    <span className="text-[10px] font-semibold uppercase tracking-wider">{item.label}</span>
+                    <Icon size={20} className="sm:w-[22px] sm:h-[22px]" strokeWidth={active ? 2.5 : 2} />
+                    <span className="text-[9px] sm:text-[10px] font-semibold uppercase tracking-wider">{item.label}</span>
                   </Link>
                 )
               })}
