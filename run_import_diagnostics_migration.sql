@@ -18,4 +18,3 @@ WHERE table_name = 'recipes'
 AND column_name IN ('raw_text', 'import_confidence', 'import_errors', 'import_warnings', 'import_flags', 'import_reviewed_at')
 ORDER BY column_name;
 
--- Made with Bob
