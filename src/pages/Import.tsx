@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState, useEffect } from 'react'
+import { useRef, useState, useEffect } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { supabase, callEdgeFunction } from '../lib/supabase'
 import { useAuth } from '../hooks/useAuth'
@@ -73,10 +73,6 @@ export function Import() {
   const [ocrWarnings, setOcrWarnings] = useState<string[]>([])
   const [ocrFlags, setOcrFlags] = useState<ImportFlag[]>([])
 
-
-  const canConfirmPhoto = useMemo(() => {
-    return !loading && !!processedBlob && !!user
-  }, [loading, processedBlob, user])
 
   const resetPhotoFlow = () => {
     if (previewUrl) {
@@ -175,9 +171,9 @@ export function Import() {
 
   const handlePhotoSelected = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
-    if (!file) return
+    if (!file || !user) return
 
-    setLoading(false)
+    setLoading(true)
     setError(null)
     setSuccessMessage(null)
     setOcrWarnings([])
@@ -186,6 +182,7 @@ export function Import() {
     setPhotoProgress(10)
 
     try {
+      // Step 1: Preprocess image
       const processed = await preprocessImage(file)
       const objectUrl = URL.createObjectURL(processed.blob)
 
@@ -197,46 +194,12 @@ export function Import() {
       setProcessedBlob(processed.blob)
       setProcessedFileName(processed.fileName)
       setPreviewUrl(objectUrl)
-      setPhotoStage('ready')
-      setPhotoProgress(100)
-    } catch (err) {
-      setPhotoStage('idle')
-      setPhotoProgress(0)
-      
-      // Provide specific error messages based on error type
-      let errorMessage = 'Failed to prepare photo'
-      if (err instanceof Error) {
-        if (err.message.includes('HEIC') || err.message.includes('heic2any')) {
-          errorMessage = err.message
-        } else if (err.message.includes('compress')) {
-          errorMessage = 'Unable to compress image to required size. Try using a smaller image or crop it to just the recipe.'
-        } else if (err.message.includes('processing')) {
-          errorMessage = 'Image processing is not supported in this browser. Try using a modern browser like Chrome, Firefox, or Safari.'
-        } else {
-          errorMessage = err.message
-        }
-      }
-      
-      setError(errorMessage)
-    }
-  }
+      setPhotoProgress(15)
 
-  const handleConfirmPhoto = async () => {
-    if (!processedBlob || !user) return
-
-    setLoading(true)
-    setError(null)
-    setSuccessMessage(null)
-    setOcrWarnings([])
-    setOcrFlags([])
-
-    try {
+      // Step 2: Perform OCR
       setPhotoStage('ocr')
-      setPhotoProgress(20)
-
-      // Perform client-side OCR with tesseract.js
-      const ocrResult = await extractTextFromImage(processedBlob, (progress) => {
-        setPhotoProgress(20 + progress.progress * 0.4) // 20-60%
+      const ocrResult = await extractTextFromImage(processed.blob, (progress) => {
+        setPhotoProgress(15 + progress.progress * 0.45) // 15-60%
       })
 
       if (!ocrResult.text || ocrResult.text.length < 20) {
@@ -246,7 +209,7 @@ export function Import() {
       setPhotoProgress(65)
       setPhotoStage('parsing')
 
-      // Parse basic structure from OCR text
+      // Step 3: Parse basic structure from OCR text
       const basicParsed = parseRecipeText(ocrResult.text)
 
       // Create base draft with OCR results
@@ -307,7 +270,7 @@ export function Import() {
 
       setPhotoProgress(70)
 
-      // Server-side GitHub Models parsing for better structure
+      // Step 4: Server-side AI parsing for better structure
       const parsedDraft = await parseRecipeWithGitHubModels(ocrResult.text)
       const mergedDraft = mergeDraftData(baseDraft, parsedDraft)
 
@@ -317,6 +280,7 @@ export function Import() {
       setPhotoStage('saving')
       setPhotoProgress(88)
 
+      // Step 5: Save to database
       const title = mergedDraft.title || 'Untitled Recipe'
       const baseSlug = title
         .toLowerCase()
@@ -337,7 +301,7 @@ export function Import() {
           owner_id: user.id,
           status: 'draft',
           import_method: 'ocr',
-          import_source: selectedFile?.name || processedFileName,
+          import_source: file.name || processed.fileName,
           raw_text: mergedDraft.raw_text,
           import_confidence: mergedDraft.confidence,
           import_errors: mergedDraft.errors,
@@ -365,15 +329,26 @@ export function Import() {
         navigate(`/drafts/${recipe.id}`)
       }, 800)
     } catch (err) {
-      let errorMessage = 'Failed to process image'
+      setPhotoStage('idle')
+      setPhotoProgress(0)
       
+      // Provide specific error messages based on error type
+      let errorMessage = 'Failed to process photo'
       if (err instanceof Error) {
-        errorMessage = err.message
+        if (err.message.includes('HEIC') || err.message.includes('heic2any')) {
+          errorMessage = err.message
+        } else if (err.message.includes('compress')) {
+          errorMessage = 'Unable to compress image to required size. Try using a smaller image or crop it to just the recipe.'
+        } else if (err.message.includes('processing')) {
+          errorMessage = 'Image processing is not supported in this browser. Try using a modern browser like Chrome, Firefox, or Safari.'
+        } else if (err.message.includes('extract')) {
+          errorMessage = err.message
+        } else {
+          errorMessage = err.message
+        }
       }
       
       setError(errorMessage)
-      setPhotoStage('ready')
-      setPhotoProgress(0)
     } finally {
       setLoading(false)
     }
@@ -475,134 +450,78 @@ export function Import() {
 
         {tab === 'ocr' && (
           <div className="space-y-4">
-            <label className="block w-full cursor-pointer">
-              <div className="bg-white border-2 border-dashed border-gray-300 rounded-lg p-12 text-center hover:border-tertiary transition-colors">
-                <Camera size={48} className="mx-auto mb-4 text-tertiary" />
-                <p className="text-lg font-medium text-primary mb-2">
-                  {photoStage === 'preparing' ? 'Preparing photo…' : 'Take or upload a photo'}
-                </p>
-                <p className="text-sm text-primary/60">
-                  Photograph a printed recipe page, then confirm before OCR runs
-                </p>
-              </div>
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept="image/*"
-                capture="environment"
-                onChange={handlePhotoSelected}
-                disabled={loading}
-                className="hidden"
-              />
-            </label>
-
-            <div className="mt-2 p-3 bg-amber-50 border border-amber-200 rounded-lg">
-              <p className="text-xs text-amber-900">
-                <strong>📱 iPhone Users:</strong> Change your camera settings to save photos as JPG:
-                <br />
-                <span className="text-amber-800 font-medium">Settings → Camera → Formats → "Most Compatible"</span>
-                <br />
-                <span className="text-amber-700 text-[10px] mt-1 block">HEIC format is not supported for OCR processing</span>
-              </p>
-            </div>
-
-            {photoStage !== 'idle' && (
-              <div className="bg-white border border-gray-200 rounded-lg p-4 space-y-3">
-                <div className="flex items-center justify-between text-sm">
-                  <span className="font-medium text-primary">Import progress</span>
-                  <span className="text-primary/60 capitalize">{photoStage}</span>
-                </div>
-                <Progress value={photoProgress} className="h-2 [&_[data-slot=progress-indicator]]:bg-tertiary" />
-                <p className="text-sm text-primary/60">
-                  {photoStage === 'preparing' && 'Optimizing contrast and converting to OCR-friendly image…'}
-                  {photoStage === 'ready' && 'Preview the processed image and confirm when it looks readable.'}
-                  {photoStage === 'ocr' && 'Recognizing text with Tesseract.js (client-side)…'}
-                  {photoStage === 'parsing' && 'Parsing recipe structure with AI…'}
-                  {photoStage === 'saving' && 'Saving draft for review…'}
-                </p>
-              </div>
-            )}
-
-            {previewUrl && (
-              <div className="bg-white border border-gray-200 rounded-lg p-4 space-y-4">
-                <div className="flex items-center justify-between gap-4">
-                  <div>
-                    <h2 className="font-medium text-primary">Processed preview</h2>
+            {photoStage === 'idle' ? (
+              <>
+                <label className="block w-full cursor-pointer">
+                  <div className="bg-white border-2 border-dashed border-gray-300 rounded-lg p-12 text-center hover:border-tertiary transition-colors">
+                    <Camera size={48} className="mx-auto mb-4 text-tertiary" />
+                    <p className="text-lg font-medium text-primary mb-2">
+                      Take or upload a photo
+                    </p>
                     <p className="text-sm text-primary/60">
-                      Confirm this looks clean before OCR starts.
+                      Photo will be processed automatically
                     </p>
                   </div>
-                  <button
-                    type="button"
-                    onClick={resetPhotoFlow}
-                    className="inline-flex items-center gap-2 px-3 py-2 border border-gray-300 rounded-lg text-sm hover:bg-gray-50"
-                  >
-                    <RefreshCcw size={16} />
-                    Retake
-                  </button>
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*"
+                    capture="environment"
+                    onChange={handlePhotoSelected}
+                    disabled={loading}
+                    className="hidden"
+                  />
+                </label>
+
+                <div className="mt-2 p-3 bg-amber-50 border border-amber-200 rounded-lg">
+                  <p className="text-xs text-amber-900">
+                    <strong>📱 iPhone Users:</strong> Change your camera settings to save photos as JPG:
+                    <br />
+                    <span className="text-amber-800 font-medium">Settings → Camera → Formats → "Most Compatible"</span>
+                    <br />
+                    <span className="text-amber-700 text-[10px] mt-1 block">HEIC format is not supported for OCR processing</span>
+                  </p>
+                </div>
+              </>
+            ) : (
+              <>
+                <div className="bg-white border border-gray-200 rounded-lg p-4 space-y-3">
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="font-medium text-primary">Processing photo</span>
+                    <span className="text-primary/60 capitalize">{photoStage}</span>
+                  </div>
+                  <Progress value={photoProgress} className="h-2 [&_[data-slot=progress-indicator]]:bg-tertiary" />
+                  <p className="text-sm text-primary/60">
+                    {photoStage === 'preparing' && 'Optimizing contrast and converting to OCR-friendly image…'}
+                    {photoStage === 'ocr' && 'Recognizing text with Tesseract.js (client-side)…'}
+                    {photoStage === 'parsing' && 'Parsing recipe structure with AI…'}
+                    {photoStage === 'saving' && 'Saving draft for review…'}
+                  </p>
+                  
+                  <div className="flex justify-end pt-2">
+                    <button
+                      type="button"
+                      onClick={resetPhotoFlow}
+                      disabled={loading}
+                      className="inline-flex items-center gap-2 px-3 py-2 border border-gray-300 rounded-lg text-sm hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      <RefreshCcw size={16} />
+                      Retake Photo
+                    </button>
+                  </div>
                 </div>
 
-                <img
-                  src={previewUrl}
-                  alt="Processed recipe preview"
-                  className="w-full rounded-lg border border-gray-200 object-contain max-h-[420px] bg-gray-50"
-                />
-
-                <div className="flex flex-col sm:flex-row gap-3">
-                  <button
-                    type="button"
-                    onClick={handleConfirmPhoto}
-                    disabled={!canConfirmPhoto}
-                    className="flex-1 px-4 py-3 bg-tertiary text-white rounded-lg hover:bg-tertiary disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    {loading ? 'Processing…' : 'Use this photo'}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={resetPhotoFlow}
-                    className="px-4 py-3 border border-gray-300 rounded-lg hover:bg-gray-50"
-                  >
-                    Cancel
-                  </button>
-                </div>
-              </div>
-            )}
-
-            {(ocrWarnings.length > 0 || ocrFlags.length > 0) && (
-              <div className="space-y-3">
-                {ocrWarnings.length > 0 && (
-                  <Alert className="border-amber-200 bg-amber-50 text-amber-900">
-                    <AlertTriangle className="h-4 w-4" />
-                    <AlertTitle>Review needed</AlertTitle>
-                    <AlertDescription>
-                      <ul className="list-disc pl-5 space-y-1">
-                        {ocrWarnings.map((warning) => (
-                          <li key={warning}>{warning}</li>
-                        ))}
-                      </ul>
-                    </AlertDescription>
-                  </Alert>
-                )}
-
-                {ocrFlags.length > 0 && (
+                {previewUrl && (
                   <div className="bg-white border border-gray-200 rounded-lg p-4">
-                    <h3 className="font-medium text-primary mb-2">Flagged fields</h3>
-                    <div className="space-y-2">
-                      {ocrFlags.map((flag, index) => (
-                        <div
-                          key={`${flag.field}-${flag.message}-${index}`}
-                          className="rounded-md border border-gray-200 px-3 py-2 text-sm"
-                        >
-                          <span className="font-medium capitalize">{flag.field}</span>
-                          <span className="mx-2 text-primary/40">•</span>
-                          <span className="uppercase text-xs tracking-wide text-primary/60">{flag.severity}</span>
-                          <p className="mt-1 text-primary/70">{flag.message}</p>
-                        </div>
-                      ))}
-                    </div>
+                    <h3 className="text-sm font-medium text-primary mb-2">Processing preview</h3>
+                    <img
+                      src={previewUrl}
+                      alt="Recipe photo being processed"
+                      className="w-full rounded-lg border border-gray-200 object-contain max-h-[300px] bg-gray-50"
+                    />
                   </div>
                 )}
-              </div>
+              </>
             )}
           </div>
         )}
