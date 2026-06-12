@@ -691,17 +691,17 @@ async function preprocessImage(file: File): Promise<{ blob: Blob; fileName: stri
     throw new Error('Unable to compress image to required size. Try a smaller or simpler image.')
   }
 
-  // Sanitize filename: remove special characters and accents
+  // Sanitize filename: remove ALL special characters, spaces, and accents
   const sanitizedName = file.name
     .replace(/\.[^.]+$/i, '') // Remove extension
     .normalize('NFD') // Decompose accented characters
     .replace(/[\u0300-\u036f]/g, '') // Remove diacritics
-    .replace(/[^a-zA-Z0-9-_]/g, '-') // Replace non-alphanumeric with dash
-    .replace(/-+/g, '-') // Replace multiple dashes with single dash
-    .replace(/^-+|-+$/g, '') // Remove leading/trailing dashes
+    .replace(/[^a-zA-Z0-9]/g, '') // Remove ALL non-alphanumeric (including spaces, apostrophes, etc)
     .toLowerCase()
+    .substring(0, 50) // Limit length
   
-  const fileName = (sanitizedName || 'recipe') + '-processed.jpg'
+  // Use timestamp-based name if sanitization results in empty string
+  const fileName = (sanitizedName || `recipe${Date.now()}`) + '.jpg'
   return { blob: finalBlob, fileName }
 }
 
