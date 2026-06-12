@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
+import { motion } from 'framer-motion'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../hooks/useAuth'
 import type { Recipe } from '../lib/types/recipe'
@@ -7,16 +8,18 @@ import { IngredientList } from '../components/IngredientList'
 import { StepList } from '../components/StepList'
 import { Layout } from '../components/Layout'
 import { RecipeScaling } from '../components/RecipeScaling'
-import { Edit, Globe, EyeOff } from 'lucide-react'
+import { Card, CardContent } from '../app/components/ui/card'
+import { Edit, Globe, EyeOff, Users, Clock, Star, Bookmark, Share2 } from 'lucide-react'
 import { scaleIngredients, type ScalingState } from '../lib/recipeScaling'
 
 export function RecipeDetail() {
   const { slug } = useParams<{ slug: string }>()
-  const { user } = useAuth()
+  const { user, profile } = useAuth()
   const navigate = useNavigate()
   const [recipe, setRecipe] = useState<Recipe | null>(null)
   const [loading, setLoading] = useState(true)
   const [scalingState, setScalingState] = useState<ScalingState | null>(null)
+  const [isSaved, setIsSaved] = useState(false)
 
   useEffect(() => {
     loadRecipe()
@@ -54,11 +57,11 @@ export function RecipeDetail() {
 
   if (loading) {
     return (
-      <Layout showBack title="Loading…" contained={false}>
+      <Layout showBack avatarUrl={profile?.avatar_url}>
         <div className="flex items-center justify-center py-24">
           <div className="text-center">
-            <div className="w-8 h-8 border-4 border-tertiary border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-            <p className="text-muted-foreground">Loading recipe…</p>
+            <div className="w-8 h-8 border-4 border-stone-950 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+            <p className="text-stone-600">Loading recipe…</p>
           </div>
         </div>
       </Layout>
@@ -67,10 +70,17 @@ export function RecipeDetail() {
 
   if (!recipe) {
     return (
-      <Layout showBack title="Not found" contained={false}>
+      <Layout showBack avatarUrl={profile?.avatar_url}>
         <div className="text-center py-24">
-          <p className="text-muted-foreground mb-4">Recipe not found.</p>
-          <button onClick={() => navigate('/')} className="text-tertiary hover:underline font-medium">
+          <div className="mx-auto grid h-16 w-16 place-items-center rounded-2xl bg-stone-950 text-white mb-4">
+            <EyeOff className="h-7 w-7" />
+          </div>
+          <h2 className="text-2xl font-semibold text-stone-950 mb-2">Recipe not found</h2>
+          <p className="text-stone-600 mb-6">This recipe may have been removed or doesn't exist.</p>
+          <button 
+            onClick={() => navigate('/')} 
+            className="rounded-full bg-stone-950 px-6 py-3 text-sm font-medium text-white hover:bg-stone-800 transition-colors"
+          >
             Go to home
           </button>
         </div>
@@ -92,85 +102,150 @@ export function RecipeDetail() {
   const isScaled = scalingState ? scalingState.scalingFactor !== 1 : false
 
   return (
-    <Layout showBack title={recipe.title} contained={false}>
-      <article className="bg-background">
+    <Layout showBack avatarUrl={profile?.avatar_url}>
+      <motion.article 
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4 }}
+        className="max-w-5xl mx-auto"
+      >
+        {/* Hero Image Card */}
         {recipe.image_url && (
-          <img
-            src={recipe.image_url}
-            alt={recipe.title}
-            className="w-full aspect-video object-cover"
-          />
+          <Card className="rounded-[2rem] border-black/10 bg-[#fbf7ef]/80 shadow-sm backdrop-blur-xl overflow-hidden mb-6">
+            <img
+              src={recipe.image_url}
+              alt={recipe.title}
+              className="w-full aspect-video object-cover"
+            />
+          </Card>
         )}
 
-        <div className="max-w-3xl mx-auto px-4 py-12">
-          <h1 className="font-display text-4xl md:text-5xl text-primary mb-4 font-normal">{recipe.title}</h1>
-          {recipe.description && (
-            <p className="text-base text-primary/80 mb-8 font-light leading-relaxed">{recipe.description}</p>
-          )}
-
-          {recipe.tags.length > 0 && (
-            <div className="flex flex-wrap gap-2 mb-8">
-              {recipe.tags.map(tag => (
-                <span key={tag} className="text-[11px] px-3 py-1.5 bg-secondary/20 text-primary rounded-full font-semibold uppercase tracking-wide">
-                  {tag}
-                </span>
-              ))}
+        {/* Main Content Card */}
+        <Card className="rounded-[2rem] border-black/10 bg-[#fbf7ef]/80 shadow-sm backdrop-blur-xl mb-6">
+          <CardContent className="p-6 md:p-8">
+            {/* Title and Description */}
+            <div className="mb-6">
+              <h1 className="font-display text-4xl md:text-5xl text-stone-950 mb-4 font-semibold tracking-tight">
+                {recipe.title}
+              </h1>
+              {recipe.description && (
+                <p className="text-lg text-stone-600 leading-relaxed">{recipe.description}</p>
+              )}
             </div>
-          )}
 
-          {recipe.source_url && (
-            <a
-              href={recipe.source_url}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 text-tertiary hover:underline mb-8 font-medium"
-            >
-              <Globe size={16} />
-              View original source
-            </a>
-          )}
-
-          {isOwner && (
-            <div className="flex flex-wrap gap-3 mb-8">
+            {/* Meta Stats */}
+            <div className="flex flex-wrap gap-3 mb-6">
+              {recipe.servings && (
+                <div className="flex items-center gap-2 rounded-full border border-black/10 bg-white/70 px-4 py-2 text-sm">
+                  <Users className="h-4 w-4 text-stone-700" />
+                  <span className="font-medium text-stone-950">{recipe.servings}</span>
+                  <span className="text-stone-600">servings</span>
+                </div>
+              )}
+              <div className="flex items-center gap-2 rounded-full border border-black/10 bg-white/70 px-4 py-2 text-sm">
+                <Star className="h-4 w-4 fill-amber-400 text-amber-400" />
+                <span className="font-medium text-stone-950">4.8</span>
+              </div>
               <button
-                onClick={() => navigate(`/drafts/${recipe.id}`)}
-                className="flex items-center gap-2 px-4 py-3 bg-primary text-primary-foreground rounded-full hover:bg-primary/90 text-[11px] font-semibold uppercase tracking-[1.65px]"
+                onClick={() => setIsSaved(!isSaved)}
+                className={`flex items-center gap-2 rounded-full border px-4 py-2 text-sm transition-colors ${
+                  isSaved 
+                    ? 'border-stone-950 bg-stone-950 text-white' 
+                    : 'border-black/10 bg-white/70 text-stone-700 hover:bg-white'
+                }`}
               >
-                <Edit size={16} />
-                Edit
+                <Bookmark className={`h-4 w-4 ${isSaved ? 'fill-white' : ''}`} />
+                {isSaved ? 'Saved' : 'Save'}
               </button>
-              <button
-                onClick={unpublish}
-                className="flex items-center gap-2 px-4 py-3 border border-border/30 rounded-full hover:bg-primary/5 text-primary text-[11px] font-semibold uppercase tracking-[1.65px]"
-              >
-                <EyeOff size={16} />
-                Unpublish
+              <button className="flex items-center gap-2 rounded-full border border-black/10 bg-white/70 px-4 py-2 text-sm text-stone-700 hover:bg-white transition-colors">
+                <Share2 className="h-4 w-4" />
+                Share
               </button>
             </div>
-          )}
 
-          {/* Recipe Scaling Controls */}
-          <div className="mb-8">
-            <RecipeScaling
-              originalServings={recipe.servings}
-              ingredients={recipe.ingredients}
-              onScalingChange={setScalingState}
-            />
-          </div>
+            {/* Tags */}
+            {recipe.tags.length > 0 && (
+              <div className="flex flex-wrap gap-2 mb-6">
+                {recipe.tags.map((tag) => (
+                  <span 
+                    key={tag} 
+                    className="text-xs px-3 py-1.5 bg-stone-950 text-white rounded-full font-semibold uppercase tracking-wide"
+                  >
+                    {tag}
+                  </span>
+                ))}
+              </div>
+            )}
 
-          <div className="grid md:grid-cols-2 gap-12 pt-8 border-t border-border/20">
-            <div>
-              <h2 className="font-display text-3xl text-primary mb-6 font-normal">Ingredients</h2>
+            {/* Source Link */}
+            {recipe.source_url && (
+              <a
+                href={recipe.source_url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 text-stone-950 hover:underline mb-6 font-medium"
+              >
+                <Globe size={16} />
+                View original source
+              </a>
+            )}
+
+            {/* Owner Actions */}
+            {isOwner && (
+              <div className="flex flex-wrap gap-3 mb-6 pt-6 border-t border-black/10">
+                <button
+                  onClick={() => navigate(`/drafts/${recipe.id}`)}
+                  className="flex items-center gap-2 px-5 py-2.5 bg-stone-950 text-white rounded-full hover:bg-stone-800 text-sm font-medium transition-colors"
+                >
+                  <Edit size={16} />
+                  Edit Recipe
+                </button>
+                <button
+                  onClick={unpublish}
+                  className="flex items-center gap-2 px-5 py-2.5 border border-black/10 rounded-full hover:bg-white text-stone-700 text-sm font-medium transition-colors"
+                >
+                  <EyeOff size={16} />
+                  Unpublish
+                </button>
+              </div>
+            )}
+
+            {/* Recipe Scaling */}
+            <div className="pt-6 border-t border-black/10">
+              <RecipeScaling
+                originalServings={recipe.servings}
+                ingredients={recipe.ingredients}
+                onScalingChange={setScalingState}
+              />
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Ingredients and Steps Grid */}
+        <div className="grid md:grid-cols-2 gap-6 mb-6">
+          {/* Ingredients Card */}
+          <Card className="rounded-[2rem] border-black/10 bg-[#fbf7ef]/80 shadow-sm backdrop-blur-xl">
+            <CardContent className="p-6 md:p-8">
+              <h2 className="font-display text-2xl text-stone-950 mb-6 font-semibold tracking-tight">
+                Ingredients
+              </h2>
               <IngredientList ingredients={scaledIngredients} isScaled={isScaled} />
-            </div>
+            </CardContent>
+          </Card>
 
-            <div>
-              <h2 className="font-display text-3xl text-primary mb-6 font-normal">Steps</h2>
+          {/* Steps Card */}
+          <Card className="rounded-[2rem] border-black/10 bg-[#fbf7ef]/80 shadow-sm backdrop-blur-xl">
+            <CardContent className="p-6 md:p-8">
+              <h2 className="font-display text-2xl text-stone-950 mb-6 font-semibold tracking-tight">
+                Instructions
+              </h2>
               <StepList steps={recipe.steps} />
-            </div>
-          </div>
+            </CardContent>
+          </Card>
         </div>
-      </article>
+      </motion.article>
     </Layout>
   )
 }
+
+// Made with Bob

@@ -1,15 +1,32 @@
 import { Link } from 'react-router-dom'
-import { Avatar, AvatarFallback } from '../app/components/ui/avatar'
+import { motion } from 'framer-motion'
+import { Clock, Users, Star, Bookmark } from 'lucide-react'
 import type { Recipe } from '../lib/types/recipe'
 
-function getPublisherInitials(name: string | null | undefined) {
-  if (!name) return 'U'
+const gradients = [
+  'from-stone-900 via-neutral-700 to-amber-500',
+  'from-zinc-950 via-stone-700 to-orange-300',
+  'from-emerald-950 via-stone-700 to-lime-300',
+  'from-slate-950 via-red-900 to-rose-300',
+  'from-indigo-950 via-stone-700 to-blue-300',
+  'from-purple-950 via-stone-700 to-pink-300',
+]
 
-  const trimmed = name.trim()
-  if (trimmed.length === 0) return 'U'
+const accents = [
+  'bg-amber-400',
+  'bg-orange-300',
+  'bg-lime-300',
+  'bg-rose-300',
+  'bg-blue-300',
+  'bg-pink-300',
+]
 
-  // Return first 2 letters of the nickname (or 1 if nickname is only 1 character)
-  return trimmed.slice(0, 2).toUpperCase()
+function getRecipeGradient(id: number) {
+  return gradients[id % gradients.length]
+}
+
+function getRecipeAccent(id: number) {
+  return accents[id % accents.length]
 }
 
 export function RecipeCard({ recipe }: { recipe: Recipe }) {
@@ -17,55 +34,106 @@ export function RecipeCard({ recipe }: { recipe: Recipe }) {
 
   return (
     <Link to={`/recipes/${recipe.slug}`} className="block group">
-      <div className="bg-background rounded-2xl overflow-hidden border border-border/20 hover:border-tertiary hover:shadow-elevated hover:-translate-y-1 transition-all duration-300">
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        whileHover={{ y: -4 }}
+        transition={{ duration: 0.2 }}
+        className="overflow-hidden rounded-[2rem] border border-black/10 bg-[#fbf7ef]/80 shadow-sm backdrop-blur-xl hover:shadow-xl hover:border-stone-950/20 transition-all"
+      >
+        {/* Recipe Image or Gradient */}
         {recipe.image_url ? (
-          <div className="aspect-video bg-muted/10 rounded-t-2xl overflow-hidden">
+          <div className="aspect-video overflow-hidden">
             <img
               src={recipe.image_url}
               alt={recipe.title}
-              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
             />
           </div>
         ) : (
-          <div className="aspect-video bg-gradient-to-br from-[#d97757]/10 to-[#e8e6dc]/10 flex items-center justify-center">
-            <svg className="w-12 h-12 text-primary/20" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
-            </svg>
+          <div className={`aspect-video bg-gradient-to-br ${getRecipeGradient(recipe.id)} relative overflow-hidden`}>
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_30%,rgba(255,255,255,.2),transparent_50%)]" />
+            <div className="absolute bottom-4 left-4">
+              <span className={`h-6 w-6 rounded-full ${getRecipeAccent(recipe.id)} shadow-lg block`} />
+            </div>
           </div>
         )}
-        <div className="p-10 space-y-3">
-          {/* Title and publisher badge grouped together */}
-          <div className="space-y-2">
-            <h3 className="font-display text-2xl text-primary line-clamp-2 leading-tight font-normal">
+
+        {/* Card Content */}
+        <div className="p-5 md:p-6">
+          <div className="flex items-start justify-between gap-3 mb-3">
+            <h3 className="font-display text-xl font-semibold tracking-tight text-stone-950 line-clamp-2 flex-1">
               {recipe.title}
             </h3>
-            
-            {/* Publisher badge - tiny tag under title */}
-            <div className="inline-flex items-center gap-1.5 px-2 py-1 rounded-full bg-primary/5 border border-border/20">
-              <Avatar className="h-4 w-4">
-                <AvatarFallback className="bg-primary text-primary-foreground text-[8px] font-semibold">
-                  {getPublisherInitials(publisherName)}
-                </AvatarFallback>
-              </Avatar>
-              <span className="text-[10px] text-muted-foreground font-semibold uppercase tracking-[1.5px]">
-                {publisherName}
-              </span>
+            <button
+              onClick={(e) => {
+                e.preventDefault()
+                // Handle bookmark
+              }}
+              className="grid h-9 w-9 shrink-0 place-items-center rounded-full border border-black/10 bg-white/55 backdrop-blur transition hover:bg-white hover:border-stone-950"
+              aria-label="Save recipe"
+            >
+              <Bookmark className="h-4 w-4 text-stone-700" />
+            </button>
+          </div>
+
+          {/* Description */}
+          {recipe.description && (
+            <p className="text-sm text-stone-600 line-clamp-2 mb-4 leading-relaxed">
+              {recipe.description}
+            </p>
+          )}
+
+          {/* Meta Information */}
+          <div className="flex flex-wrap gap-2 mb-4">
+            {recipe.servings && (
+              <div className="flex items-center gap-1.5 rounded-full bg-white/70 px-3 py-1.5 text-xs text-stone-700">
+                <Users className="h-3.5 w-3.5" />
+                <span className="font-medium">{recipe.servings}</span>
+              </div>
+            )}
+            <div className="flex items-center gap-1.5 rounded-full bg-white/70 px-3 py-1.5 text-xs text-stone-700">
+              <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400" />
+              <span className="font-medium">4.8</span>
             </div>
           </div>
 
           {/* Tags */}
           {recipe.tags.length > 0 && (
-            <div className="flex flex-wrap gap-2 pt-2">
-              {recipe.tags.slice(0, 3).map(tag => (
-                <span key={tag} className="text-[11px] px-3 py-1.5 bg-secondary/20 text-primary rounded-full font-semibold uppercase tracking-wide">
+            <div className="flex flex-wrap gap-2 pt-2 border-t border-black/5">
+              {recipe.tags.slice(0, 3).map((tag) => (
+                <span
+                  key={tag}
+                  className="text-[10px] px-2.5 py-1 bg-stone-950 text-white rounded-full font-semibold uppercase tracking-wider"
+                >
                   {tag}
                 </span>
               ))}
+              {recipe.tags.length > 3 && (
+                <span className="text-[10px] px-2.5 py-1 bg-stone-200 text-stone-600 rounded-full font-semibold">
+                  +{recipe.tags.length - 3}
+                </span>
+              )}
             </div>
           )}
+
+          {/* Publisher Badge */}
+          <div className="mt-4 pt-3 border-t border-black/5">
+            <div className="flex items-center gap-2">
+              <div className="h-6 w-6 rounded-full bg-stone-950 flex items-center justify-center">
+                <span className="text-[10px] font-bold text-white">
+                  {publisherName.slice(0, 1).toUpperCase()}
+                </span>
+              </div>
+              <span className="text-xs text-stone-500 font-medium">
+                by {publisherName}
+              </span>
+            </div>
+          </div>
         </div>
-      </div>
+      </motion.div>
     </Link>
   )
 }
+
+// Made with Bob
