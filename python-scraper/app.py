@@ -1,7 +1,7 @@
 """
 Recipe Scraper API
 A Flask-based REST API for scraping recipes from various cooking websites
-and extracting recipe text from images with EasyOCR.
+and extracting recipe text from images with Tesseract OCR.
 """
 
 from flask import Flask, request, jsonify
@@ -13,17 +13,13 @@ import logging
 import os
 import re
 from io import BytesIO
-import numpy as np
 
 from PIL import Image, ImageOps, ImageEnhance
 
 try:
-    import easyocr
+    import pytesseract
 except ImportError:  # pragma: no cover - handled at runtime
-    easyocr = None
-
-# Global OCR reader instance (initialized once to save memory)
-_ocr_reader = None
+    pytesseract = None
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -56,20 +52,20 @@ UNIT_HINT_PATTERN = re.compile(
     re.IGNORECASE,
 )
 
-def get_ocr_reader():
-    """Get or initialize the EasyOCR reader (singleton pattern to save memory)"""
-    global _ocr_reader
-    
-    if easyocr is None:
+def check_tesseract_available():
+    """Check if Tesseract OCR is available"""
+    if pytesseract is None:
         raise RuntimeError(
-            'easyocr is not installed. Add easyocr to python-scraper/requirements.txt.'
+            'pytesseract is not installed. Add pytesseract to python-scraper/requirements.txt.'
         )
     
-    if _ocr_reader is None:
-        # Initialize with English and French, GPU disabled for lower memory usage
-        _ocr_reader = easyocr.Reader(['en', 'fr'], gpu=False)
-    
-    return _ocr_reader
+    try:
+        # Test if tesseract binary is available
+        pytesseract.get_tesseract_version()
+    except Exception as e:
+        raise RuntimeError(
+            f'Tesseract OCR binary not found. Install tesseract-ocr system package. Error: {str(e)}'
+        )
 
 
 def scrape_recipe(url: str) -> Dict[str, Any]:
@@ -127,19 +123,16 @@ def preprocess_image_bytes(image_bytes: bytes) -> Image.Image:
     return image
 
 
-def extract_text_with_easyocr(image_bytes: bytes) -> str:
-    """Extract text from image using EasyOCR (lightweight and memory-efficient)"""
-    reader = get_ocr_reader()
+def extract_text_with_tesseract(image: Image.Image) -> str:
+    """Extract text from image using Tesseract OCR with French language support"""
+    check_tesseract_available()
     
-    # Convert bytes to PIL Image, then to numpy array
-    image = Image.open(BytesIO(image_bytes))
-    image_np = np.array(image)
-    
-    # Perform OCR
-    results = reader.readtext(image_np, detail=0, paragraph=True)
-    
-    # Join all text results
-    text = '\n'.join(results)
+    # Use pytesseract to extract text
+    # PSM 6 = Assume a single uniform block of text
+    # Support both French and English (fra+eng)
+    lang = os.environ.get('TESSERACT_LANG', 'fra+eng')
+    custom_config = r'--oem 3 --psm 6'
+    text = pytesseract.image_to_string(image, lang=lang, config=custom_config)
     
     return text.strip()
 
@@ -263,9 +256,10 @@ def score_heuristics(lines: List[str], ingredient_count: int, step_count: int, t
 
 
 def extract_recipe_from_image_bytes(image_bytes: bytes) -> Dict[str, Any]:
-    """Extract recipe from image using EasyOCR"""
+    """Extract recipe from image using Tesseract OCR"""
     try:
-        raw_text = extract_text_with_easyocr(image_bytes)
+        image = preprocess_image_bytes(image_bytes)
+        raw_text = extract_text_with_tesseract(image)
 
         if len(raw_text) < 20:
             return {
@@ -344,7 +338,7 @@ def extract_recipe_from_image_bytes(image_bytes: bytes) -> Dict[str, Any]:
                 'errors': errors,
                 'warnings': warnings,
                 'flags': flags,
-                'ocr_engine': 'easyocr',
+                'ocr_engine': 'tesseract',
             }
         }
     except RuntimeError as e:
@@ -358,18 +352,17 @@ def extract_recipe_from_image_bytes(image_bytes: bytes) -> Dict[str, Any]:
 def health_check():
     """Health check endpoint"""
     ocr_status = 'unavailable'
-    if easyocr is not None:
+    if pytesseract is not None:
         try:
-            # Check if we can get the reader
-            get_ocr_reader()
-            ocr_status = 'easyocr'
+            pytesseract.get_tesseract_version()
+            ocr_status = 'tesseract'
         except:
             ocr_status = 'unavailable'
     
     return jsonify({
         'status': 'healthy',
         'service': 'recipe-scraper',
-        'version': '1.4.0',
+        'version': '1.5.0',
         'ocr_engine': ocr_status,
     })
 
@@ -485,7 +478,7 @@ if __name__ == '__main__':
     logger.info("  GET  /health - Health check")
     logger.info("  GET  /supported-sites - List supported recipe sites")
     logger.info("  POST /scrape - Scrape a recipe from URL")
-    logger.info("  POST /ocr - Extract recipe text from image with EasyOCR")
+    logger.info("  POST /ocr - Extract recipe text from image with Tesseract OCR")
 
     app.run(host='0.0.0.0', port=port, debug=False)
 

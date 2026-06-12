@@ -1,3 +1,6 @@
 libheif-dev
 libde265-dev
 libx265-dev
+tesseract-ocr
+tesseract-ocr-eng
+tesseract-ocr-fra
