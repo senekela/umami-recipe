@@ -82,11 +82,11 @@ export function Layout({
                 <div className="grid h-9 w-9 sm:h-10 sm:w-10 place-items-center rounded-xl sm:rounded-2xl bg-stone-950 text-[#F6F1E8] shadow-lg shadow-stone-950/15 flex-shrink-0">
                   <ChefHat className="h-4 w-4 sm:h-5 sm:w-5" />
                 </div>
-                <div className="hidden sm:block min-w-0">
+                <div className="min-w-0">
                   <p className="text-sm font-semibold tracking-[-0.03em] truncate" style={{ fontFamily: 'UberMove, "Uber Move", "Uber Move Text", Inter, system-ui, sans-serif' }}>
                     Umami
                   </p>
-                  <p className="text-xs text-stone-500 truncate">Cook smarter, not harder</p>
+                  <p className="hidden sm:block text-xs text-stone-500 truncate">Cook smarter, not harder</p>
                 </div>
               </Link>
             )}
