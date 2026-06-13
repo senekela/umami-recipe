@@ -57,6 +57,7 @@ export function useDraft(id: string) {
         ingredients: draft.ingredients,
         steps: draft.steps,
         tags: draft.tags,
+        servings: draft.servings,
         status: draft.status,
         share_token: draft.share_token,
         share_enabled: draft.share_enabled,

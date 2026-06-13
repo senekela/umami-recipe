@@ -229,6 +229,7 @@ export function DraftEditor() {
       updateField('ingredients', mergedDraft.ingredients)
       updateField('steps', mergedDraft.steps)
       updateField('tags', mergedDraft.tags)
+      updateField('servings', mergedDraft.servings ?? draft.servings)
       updateField('raw_text', mergedDraft.raw_text)
       updateField('import_confidence', mergedDraft.confidence)
       updateField('import_errors', mergedDraft.errors)
@@ -246,6 +247,7 @@ export function DraftEditor() {
           ingredients: mergedDraft.ingredients,
           steps: mergedDraft.steps,
           tags: mergedDraft.tags,
+          servings: mergedDraft.servings ?? draft.servings,
           raw_text: mergedDraft.raw_text,
           import_confidence: mergedDraft.confidence,
           import_errors: mergedDraft.errors,

@@ -38,6 +38,7 @@ interface RecipeData {
   raw_text: string | null;
   errors: string[];
   yields?: string;
+  servings?: number | null;
   total_time?: string;
   prep_time?: string;
   cook_time?: string;
@@ -100,6 +101,7 @@ function transformPythonRecipe(data: PythonScraperResponse['data']): RecipeData 
     tags: [],
     confidence: data.confidence || 0.95,
     yields: data.yields || null,
+    servings: parseServings(data.yields),
     total_time: data.total_time ? `${data.total_time}` : null,
     prep_time: null,
     cook_time: null,
@@ -152,6 +154,24 @@ function parseInstructions(instructions: string): Array<{ order: number; text: s
       text: step.trim()
     }))
     .filter(s => s.text.length > 0);
+}
+
+function parseServings(value: unknown): number | null {
+  if (typeof value === 'number' && Number.isFinite(value)) {
+    return Math.max(1, Math.round(value));
+  }
+
+  if (typeof value === 'string') {
+    const match = value.match(/\d+(?:[.,]\d+)?/);
+    if (!match) return null;
+
+    const parsed = Number.parseFloat(match[0].replace(',', '.'));
+    if (!Number.isFinite(parsed)) return null;
+
+    return Math.max(1, Math.round(parsed));
+  }
+
+  return null;
 }
 
 /**

@@ -23,6 +23,7 @@ interface RecipeData {
   raw_text: string | null;
   errors: string[];
   yields?: string;
+  servings?: number | null;
   total_time?: string;
   prep_time?: string;
   cook_time?: string;
@@ -136,6 +137,7 @@ function extractJsonLd($: any): Partial<RecipeData> | null {
           steps: parseInstructions(recipe.recipeInstructions || []),
           tags: extractTags(recipe),
           yields: recipe.recipeYield || recipe.yield || null,
+          servings: parseServings(recipe.recipeYield || recipe.yield || null),
           total_time: recipe.totalTime || null,
           prep_time: recipe.prepTime || null,
           cook_time: recipe.cookTime || null,
@@ -217,6 +219,31 @@ function extractFromHtmlPatterns($: any): Partial<RecipeData> | null {
     ingredients: parseIngredients(ingredients),
     steps: parseInstructions(instructions),
   };
+}
+
+function parseServings(value: unknown): number | null {
+  if (typeof value === 'number' && Number.isFinite(value)) {
+    return Math.max(1, Math.round(value));
+  }
+
+  if (typeof value === 'string') {
+    const match = value.match(/\d+(?:[.,]\d+)?/);
+    if (!match) return null;
+
+    const parsed = Number.parseFloat(match[0].replace(',', '.'));
+    if (!Number.isFinite(parsed)) return null;
+
+    return Math.max(1, Math.round(parsed));
+  }
+
+  if (Array.isArray(value)) {
+    for (const item of value) {
+      const parsed = parseServings(item);
+      if (parsed) return parsed;
+    }
+  }
+
+  return null;
 }
 
 function extractImageUrl(image: any): string | null {

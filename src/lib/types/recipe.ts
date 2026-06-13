@@ -78,6 +78,7 @@ export type DraftSchema = {
   errors: string[]
   warnings?: string[]
   flags?: ImportFlag[]
+  servings?: number | null
 }
 
 export type Profile = {

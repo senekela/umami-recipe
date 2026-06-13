@@ -19,6 +19,7 @@ type OcrDraft = {
   errors: string[];
   warnings: string[];
   flags: ImportFlag[];
+  servings?: number | null;
   ocr_engine?: string;
 };
 
@@ -41,6 +42,7 @@ type ParsedRecipeDraft = {
   ingredients: Array<{ amount: string; unit: string; name: string }>;
   steps: Array<{ order: number; text: string }>;
   tags: string[];
+  servings?: number | null;
 };
 
 type RecipeParseResult = {
@@ -156,7 +158,8 @@ export async function handleRecipeParse(rawText: string, githubToken: string): P
     '  "description": string | null,',
     '  "ingredients": [{ "amount": string, "unit": string, "name": string }],',
     '  "steps": [{ "order": number, "text": string }],',
-    '  "tags": string[]',
+    '  "tags": string[],',
+    '  "servings": number | null',
     '}',
     '',
     'RÈGLES D’EXTRACTION :',
@@ -170,6 +173,8 @@ export async function handleRecipeParse(rawText: string, githubToken: string): P
     '- Cherche le titre de la recette au début du texte',
     '- Extrais les ingrédients avec amount, unit et name',
     '- Extrais les étapes avec un ordre séquentiel à partir de 1',
+    '- Extrais aussi le nombre de portions si le texte mentionne portions, personnes, servings, yield ou équivalent',
+    '- Le champ servings doit être un nombre entier ou null si inconnu',
     '- Si un champ est inconnu, utilise null ou un tableau vide selon le schéma',
     '',
     'EXEMPLE VALIDE D’INGRÉDIENT :',
@@ -195,6 +200,7 @@ export async function handleRecipeParse(rawText: string, githubToken: string): P
               'Respecte strictement le schéma JSON demandé.',
               'Important : chaque ingrédient doit toujours avoir des chaînes pour amount, unit et name.',
               'Si unit est inconnu, retourne "" et jamais null.',
+              'Extrais aussi le nombre de portions dans le champ servings quand il est présent.',
               '',
               'TEXTE OCR :',
               '---',
