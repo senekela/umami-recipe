@@ -179,11 +179,22 @@ export function Home() {
                       <Sparkles className="h-4 w-4 text-yellow-200" />
                       Community favorite
                     </div>
-                    <h1 className="max-w-3xl text-3xl sm:text-5xl font-semibold tracking-[-0.08em] text-[#FFF7E8] md:text-7xl leading-tight">
+                    <h1 className="max-w-3xl line-clamp-2 text-3xl sm:text-5xl font-semibold tracking-[-0.08em] text-[#FFF7E8] md:text-7xl leading-tight">
                       {featuredRecipe.title}
                     </h1>
                     {featuredRecipe.description && (
-                      <p className="mt-3 sm:mt-5 max-w-xl text-sm sm:text-base leading-6 sm:leading-7 text-white/76 md:text-lg line-clamp-3 sm:line-clamp-none">{featuredRecipe.description}</p>
+                      <div className="mt-3 sm:mt-5 max-w-xl">
+                        <p className="text-sm sm:text-base leading-6 sm:leading-7 text-white/76 md:text-lg line-clamp-2">
+                          {featuredRecipe.description}
+                        </p>
+                        <button
+                          type="button"
+                          onClick={() => navigate(`/recipes/${featuredRecipe.slug}`)}
+                          className="mt-2 inline-flex items-center text-sm font-medium text-white underline underline-offset-4 transition hover:text-white/80"
+                        >
+                          Read more
+                        </button>
+                      </div>
                     )}
                   </motion.div>
 
