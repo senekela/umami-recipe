@@ -294,10 +294,34 @@ export function DraftEditor() {
   }
 
   const handleDelete = async () => {
-    if (!confirm('Delete this recipe?')) return
+    const confirmMessage = draft.status === 'published'
+      ? 'Are you sure you want to delete this published recipe? This action cannot be undone.'
+      : 'Are you sure you want to delete this draft? This action cannot be undone.'
+    
+    if (!confirm(confirmMessage)) return
 
-    const { error } = await supabase.from('recipes').delete().eq('id', draft.id)
-    if (!error) navigate('/me')
+    try {
+      // Delete the recipe image from storage if it exists
+      if (draft.image_url) {
+        const imagePath = draft.image_url.split('/').slice(-2).join('/')
+        await supabase.storage
+          .from('recipe-images')
+          .remove([imagePath])
+      }
+
+      // Delete the recipe from database
+      const { error } = await supabase
+        .from('recipes')
+        .delete()
+        .eq('id', draft.id)
+
+      if (error) throw error
+      
+      navigate('/me')
+    } catch (err) {
+      console.error('Failed to delete recipe:', err)
+      alert('Failed to delete recipe. Please try again.')
+    }
   }
 
   const generateShareLink = async () => {

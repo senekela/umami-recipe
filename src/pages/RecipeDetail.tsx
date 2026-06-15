@@ -9,7 +9,7 @@ import { StepList } from '../components/StepList'
 import { Layout } from '../components/Layout'
 import { RecipeScaling } from '../components/RecipeScaling'
 import { Card, CardContent } from '../app/components/ui/card'
-import { Edit, Globe, EyeOff, Users, Clock, Star, Bookmark, Share2, ChevronDown } from 'lucide-react'
+import { Edit, Globe, EyeOff, Users, Clock, Star, Bookmark, Share2, ChevronDown, Trash2 } from 'lucide-react'
 import { scaleIngredients, type ScalingState } from '../lib/recipeScaling'
 
 export function RecipeDetail() {
@@ -56,6 +56,39 @@ export function RecipeDetail() {
 
     if (!error) {
       navigate('/me')
+    }
+  }
+
+  async function deleteRecipe() {
+    if (!recipe) return
+    
+    const confirmMessage = recipe.status === 'published'
+      ? 'Are you sure you want to delete this published recipe? This action cannot be undone.'
+      : 'Are you sure you want to delete this draft? This action cannot be undone.'
+    
+    if (!confirm(confirmMessage)) return
+
+    try {
+      // Delete the recipe image from storage if it exists
+      if (recipe.image_url) {
+        const imagePath = recipe.image_url.split('/').slice(-2).join('/')
+        await supabase.storage
+          .from('recipe-images')
+          .remove([imagePath])
+      }
+
+      // Delete the recipe from database
+      const { error } = await supabase
+        .from('recipes')
+        .delete()
+        .eq('id', recipe.id)
+
+      if (error) throw error
+      
+      navigate('/me')
+    } catch (err) {
+      console.error('Failed to delete recipe:', err)
+      alert('Failed to delete recipe. Please try again.')
     }
   }
 
@@ -232,12 +265,21 @@ export function RecipeDetail() {
                   <Edit size={16} />
                   Edit Recipe
                 </button>
+                {recipe.status === 'published' && (
+                  <button
+                    onClick={unpublish}
+                    className="flex items-center gap-2 px-5 py-2.5 border border-black/10 rounded-full hover:bg-white text-stone-700 text-sm font-medium transition-colors"
+                  >
+                    <EyeOff size={16} />
+                    Unpublish
+                  </button>
+                )}
                 <button
-                  onClick={unpublish}
-                  className="flex items-center gap-2 px-5 py-2.5 border border-black/10 rounded-full hover:bg-white text-stone-700 text-sm font-medium transition-colors"
+                  onClick={deleteRecipe}
+                  className="flex items-center gap-2 px-5 py-2.5 border border-red-200 bg-red-50 rounded-full hover:bg-red-100 text-red-700 text-sm font-medium transition-colors"
                 >
-                  <EyeOff size={16} />
-                  Unpublish
+                  <Trash2 size={16} />
+                  Delete Recipe
                 </button>
               </div>
             )}

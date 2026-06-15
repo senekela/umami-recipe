@@ -6,7 +6,7 @@ import { useAuth } from '../hooks/useAuth'
 import type { Recipe } from '../lib/types/recipe'
 import { RecipeCard } from '../components/RecipeCard'
 import { Layout } from '../components/Layout'
-import { LogOut, Settings, User as UserIcon, Plus, BookOpen, FileEdit } from 'lucide-react'
+import { LogOut, Settings, User as UserIcon, Plus, BookOpen, FileEdit, Trash2, Edit } from 'lucide-react'
 import { Card, CardContent } from '../app/components/ui/card'
 import { Button } from '../app/components/ui/button'
 
@@ -45,6 +45,41 @@ export function MyRecipes() {
   async function handleLogout() {
     await logout()
     navigate('/login')
+  }
+
+  async function deleteRecipe(recipe: Recipe, e: React.MouseEvent) {
+    e.preventDefault()
+    e.stopPropagation()
+    
+    const confirmMessage = recipe.status === 'published'
+      ? `Are you sure you want to delete "${recipe.title}"? This action cannot be undone.`
+      : `Are you sure you want to delete the draft "${recipe.title}"? This action cannot be undone.`
+    
+    if (!confirm(confirmMessage)) return
+
+    try {
+      // Delete the recipe image from storage if it exists
+      if (recipe.image_url) {
+        const imagePath = recipe.image_url.split('/').slice(-2).join('/')
+        await supabase.storage
+          .from('recipe-images')
+          .remove([imagePath])
+      }
+
+      // Delete the recipe from database
+      const { error } = await supabase
+        .from('recipes')
+        .delete()
+        .eq('id', recipe.id)
+
+      if (error) throw error
+      
+      // Reload recipes after deletion
+      await loadRecipes()
+    } catch (err) {
+      console.error('Failed to delete recipe:', err)
+      alert('Failed to delete recipe. Please try again.')
+    }
   }
 
   const stats = {
@@ -228,6 +263,7 @@ export function MyRecipes() {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: index * 0.05 }}
+                className="relative group"
               >
                 <button
                   onClick={() => navigate(tab === 'published' ? `/recipes/${recipe.slug}` : `/drafts/${recipe.id}`)}
@@ -235,6 +271,30 @@ export function MyRecipes() {
                 >
                   <RecipeCard recipe={recipe} />
                 </button>
+                
+                {/* Action Buttons Overlay */}
+                <div className="absolute top-3 right-3 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                  <button
+                    onClick={(e) => {
+                      e.preventDefault()
+                      e.stopPropagation()
+                      navigate(`/drafts/${recipe.id}`)
+                    }}
+                    className="flex items-center gap-1.5 px-3 py-2 bg-stone-950 text-white rounded-full hover:bg-stone-800 text-xs font-medium transition-colors shadow-lg"
+                    title="Edit recipe"
+                  >
+                    <Edit size={14} />
+                    Edit
+                  </button>
+                  <button
+                    onClick={(e) => deleteRecipe(recipe, e)}
+                    className="flex items-center gap-1.5 px-3 py-2 bg-red-600 text-white rounded-full hover:bg-red-700 text-xs font-medium transition-colors shadow-lg"
+                    title="Delete recipe"
+                  >
+                    <Trash2 size={14} />
+                    Delete
+                  </button>
+                </div>
               </motion.div>
             ))}
           </motion.div>
