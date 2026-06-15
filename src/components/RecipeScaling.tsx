@@ -228,7 +228,7 @@ export function RecipeScaling({ originalServings, ingredients, onScalingChange }
                   inputMode="decimal"
                 />
                 <span className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground">
-                  g
+                  {ingredients[anchorIndex].unit}
                 </span>
               </div>
               <p className="text-xs text-muted-foreground">

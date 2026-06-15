@@ -85,8 +85,9 @@ export function canBeAnchor(ingredient: Ingredient): boolean {
   const amount = parseAmount(ingredient.amount)
   if (amount === null || amount <= 0) return false
   
-  // Only allow gram-based ingredients as anchors
-  if (ingredient.unit !== 'g') return false
+  // Allow precise measurement units as anchors (grams and liquids)
+  const preciseUnits = ['g', 'ml', 'cl', 'L', 'l']
+  if (!preciseUnits.includes(ingredient.unit)) return false
   
   // Exclude vague quantities
   const vague = ['pincée', 'peu', 'goût', 'selon', 'environ']

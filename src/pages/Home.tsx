@@ -199,7 +199,7 @@ export function Home() {
                   </motion.div>
 
                   <div className="mt-4 sm:mt-8 flex flex-wrap gap-2">
-                    <Stat icon={Users} value={featuredRecipe.servings || 4} label="servings" />
+                    <Stat icon={Users} value={featuredRecipe.servings || 4} label="portions" />
                     {featuredRecipe.tags.length > 0 && <Stat icon={Star} value="4.8" label="rating" />}
                   </div>
                 </div>
@@ -408,7 +408,7 @@ export function Home() {
                         <div className="mt-1 sm:mt-1.5 flex flex-wrap gap-1.5 sm:gap-2 text-[10px] sm:text-xs">
                           {recipe.servings && (
                             <span className={`rounded-full px-2 sm:px-2.5 py-0.5 sm:py-1 ${selectedRecipe?.id === recipe.id ? 'bg-white/10' : 'bg-black/5'} whitespace-nowrap`}>
-                              {recipe.servings} servings
+                              {recipe.servings} portions
                             </span>
                           )}
                           {recipe.tags[0] && (

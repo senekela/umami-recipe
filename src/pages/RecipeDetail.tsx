@@ -204,7 +204,7 @@ export function RecipeDetail() {
                 <div className="flex items-center gap-2 rounded-full border border-black/10 bg-white/70 px-4 py-2 text-sm">
                   <Users className="h-4 w-4 text-stone-700" />
                   <span className="font-medium text-stone-950">{recipe.servings}</span>
-                  <span className="text-stone-600">servings</span>
+                  <span className="text-stone-600">portions</span>
                 </div>
               )}
               <div className="flex items-center gap-2 rounded-full border border-black/10 bg-white/70 px-4 py-2 text-sm">
