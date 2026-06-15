@@ -13,6 +13,7 @@ export interface ScaledIngredient extends Ingredient {
   displayAmount: string
   isAnchor?: boolean
   canBeAnchor?: boolean
+  servings?: number // Number of servings these quantities are for
 }
 
 export interface ScalingState {
@@ -129,7 +130,8 @@ export function calculateScalingFactor(
 export function scaleIngredients(
   ingredients: Ingredient[],
   scalingFactor: number,
-  anchorIndex: number | null
+  anchorIndex: number | null,
+  targetServings?: number
 ): ScaledIngredient[] {
   return ingredients.map((ingredient, index) => {
     const originalAmount = parseAmount(ingredient.amount)
@@ -143,7 +145,8 @@ export function scaleIngredients(
         scaledAmount: 0,
         displayAmount: ingredient.amount,
         isAnchor: false,
-        canBeAnchor: false
+        canBeAnchor: false,
+        servings: targetServings
       }
     }
     
@@ -156,7 +159,8 @@ export function scaleIngredients(
       scaledAmount,
       displayAmount: `${formatAmount(roundedAmount)} ${ingredient.unit}`,
       isAnchor,
-      canBeAnchor: canBeAnchor(ingredient)
+      canBeAnchor: canBeAnchor(ingredient),
+      servings: targetServings
     }
   })
 }

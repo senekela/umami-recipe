@@ -41,6 +41,12 @@ STEP_HEADER_PATTERN = re.compile(
     r'\b(directions?|instructions?|method|steps?|préparation|étapes?|recette)\b',
     re.IGNORECASE
 )
+# Pattern to extract servings/portions from text
+# Matches patterns like: "4 portions", "pour 6 personnes", "serves 8", "6-8 servings"
+SERVINGS_PATTERN = re.compile(
+    r'\b(?:pour|serves?|servings?|yield|portions?|personnes?)\s*:?\s*(\d+(?:\s*[-–—]\s*\d+)?)\b',
+    re.IGNORECASE
+)
 INGREDIENT_LINE_PATTERN = re.compile(r'^([\d¼½¾⅓⅔⅛⅜⅝⅞\/\.\s]+)?\s*([a-zA-Zàâäéèêëïîôùûüÿç]+)?\s+(.+)$')
 NUMBERED_STEP_PATTERN = re.compile(r'^(\d+)[\.\):]\s*(.+)$')
 UNIT_HINT_PATTERN = re.compile(
@@ -236,6 +242,23 @@ def extract_steps(lines: List[str]):
     return dedupe_steps(steps)
 
 
+def extract_servings(lines: List[str]) -> int | None:
+    """Extract servings/portions from text lines"""
+    for line in lines:
+        match = SERVINGS_PATTERN.search(line)
+        if match:
+            servings_str = match.group(1).strip()
+            # Handle ranges like "4-6" or "4 - 6" by taking the first number
+            first_number = servings_str.split('-')[0].split('–')[0].split('—')[0].strip()
+            try:
+                servings = int(first_number)
+                if 1 <= servings <= 100:  # Sanity check
+                    return servings
+            except ValueError:
+                continue
+    return None
+
+
 def score_heuristics(lines: List[str], ingredient_count: int, step_count: int, title: str | None):
     score = 0.2
 
@@ -276,6 +299,7 @@ def extract_recipe_from_image_bytes(image_bytes: bytes) -> Dict[str, Any]:
         title = find_title(text_lines)
         ingredients = extract_ingredients(text_lines)
         steps = extract_steps(text_lines)
+        servings = extract_servings(text_lines)
         
         # Calculate confidence based on heuristics
         heuristic_confidence = score_heuristics(text_lines, len(ingredients), len(steps), title)
@@ -333,6 +357,7 @@ def extract_recipe_from_image_bytes(image_bytes: bytes) -> Dict[str, Any]:
                 'ingredients': ingredients,
                 'steps': steps,
                 'tags': [],
+                'servings': servings,
                 'confidence': confidence,
                 'raw_text': raw_text,
                 'errors': errors,

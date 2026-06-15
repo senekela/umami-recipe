@@ -99,7 +99,8 @@ export function RecipeDetail() {
     ? scaleIngredients(
         recipe.ingredients,
         scalingState.scalingFactor,
-        scalingState.anchorIngredientIndex
+        scalingState.anchorIngredientIndex,
+        scalingState.targetServings
       )
     : recipe.ingredients
 

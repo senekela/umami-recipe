@@ -164,8 +164,13 @@ export function RecipeScaling({ originalServings, ingredients, onScalingChange }
                 step="0.5"
               />
               <p className="text-xs text-muted-foreground mt-1">
-                Recette originale : {originalServings} portion{originalServings > 1 ? 's' : ''}
+                Recette originale : {originalServings} personne{originalServings > 1 ? 's' : ''}
               </p>
+              {isScaled && (
+                <p className="text-xs font-medium text-tertiary mt-1">
+                  Quantités adaptées pour {targetServings} personne{targetServings > 1 ? 's' : ''}
+                </p>
+              )}
             </div>
             <button
               onClick={() => handleServingsChange(Math.min(50, targetServings + 1))}
@@ -239,8 +244,13 @@ export function RecipeScaling({ originalServings, ingredients, onScalingChange }
           {estimatedServings !== null && anchorAmount && !anchorError && (
             <div className="pt-2 border-t border-border/20">
               <p className="text-sm text-muted-foreground">
-                Portions estimées : <span className="font-semibold text-primary">{formatAmount(estimatedServings)}</span>
+                Personnes estimées : <span className="font-semibold text-primary">{formatAmount(estimatedServings)}</span>
               </p>
+              {isScaled && (
+                <p className="text-xs font-medium text-tertiary mt-1">
+                  Quantités adaptées pour environ {formatAmount(estimatedServings)} personne{estimatedServings > 1 ? 's' : ''}
+                </p>
+              )}
             </div>
           )}
         </div>

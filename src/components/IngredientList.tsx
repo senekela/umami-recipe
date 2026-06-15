@@ -51,6 +51,11 @@ export function IngredientList({ ingredients, isScaled = false }: IngredientList
                           </span>
                           <span className="text-primary">{ing.name}</span>
                         </div>
+                        {scaledIng.servings && (
+                          <div className="text-xs text-muted-foreground">
+                            Pour {scaledIng.servings} personne{scaledIng.servings > 1 ? 's' : ''}
+                          </div>
+                        )}
                         {scaledIng.isAnchor && (
                           <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-blue-100 text-blue-800 text-[10px] font-semibold uppercase tracking-wide rounded-full">
                             📌 Ingrédient de référence
