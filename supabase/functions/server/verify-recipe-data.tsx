@@ -71,7 +71,7 @@ export async function verifyRecipeData(recipeData: RecipeData): Promise<Verifica
         messages: [
           {
             role: 'system',
-            content: 'Tu es un expert en nettoyage et vérification de données de recettes. Ton rôle est de filtrer impitoyablement les données parasites (liens, commentaires, navigation, publicités) et de ne garder QUE les vraies instructions de cuisine et les vrais ingrédients. Supprime tout ce qui n\'est pas directement lié à la préparation de la recette.'
+            content: 'Tu es un filtre de données ultra-strict pour recettes de cuisine. MISSION: Éliminer TOUT ce qui n\'est pas une instruction culinaire pure ou un ingrédient alimentaire réel. SUPPRIMER SANS PITIÉ: liens, URLs, navigation, commentaires, partages sociaux, publicités, métadonnées, appels à l\'action, texte promotionnel. GARDER UNIQUEMENT: actions de cuisine concrètes (préchauffer, mélanger, cuire) et ingrédients alimentaires avec quantités. En cas de doute → SUPPRIMER. Qualité > Quantité. Sois IMPITOYABLE.'
           },
           {
             role: 'user',
@@ -111,9 +111,9 @@ export async function verifyRecipeData(recipeData: RecipeData): Promise<Verifica
  * Build the verification prompt for GitHub Models
  */
 function buildVerificationPrompt(recipeData: RecipeData): string {
-  return `Tu es un expert en vérification de données de recettes. Ton travail est de nettoyer, valider et améliorer les données de recettes extraites, en éliminant toutes les données corrompues ou illisibles.
+  return `Tu es un expert en nettoyage de données de recettes. Ton rôle est d'ÉLIMINER IMPITOYABLEMENT toutes les données parasites et de ne garder QUE les informations culinaires pures.
 
-**Données de recette brutes (peuvent contenir du bruit):**
+**Données brutes à nettoyer:**
 \`\`\`json
 ${JSON.stringify({
   title: recipeData.title,
@@ -126,81 +126,131 @@ ${JSON.stringify({
 }, null, 2)}
 \`\`\`
 
-**Ta mission:**
-1. **NETTOYER les données corrompues:**
-   - Supprimer TOUS les liens markdown: [texte](url) → garder uniquement "texte"
-   - Supprimer les URLs complètes: https://...
-   - Supprimer les balises HTML: <div>, </p>, etc.
-   - Supprimer les caractères spéciaux illisibles: �, □, etc.
-   - Supprimer les métadonnées du site: "Commentaires", "Partager", "Imprimer", etc.
+**MISSION CRITIQUE: FILTRAGE AGRESSIF**
 
-2. **FILTRER les étapes:**
-   - GARDER UNIQUEMENT les vraies instructions de cuisine
-   - SUPPRIMER: commentaires, publicités, navigation, métadonnées
-   - SUPPRIMER: "Voir les commentaires", "Partager la recette", "Imprimer", etc.
-   - SUPPRIMER: textes promotionnels ou non-culinaires
+**1. ÉTAPES - SUPPRIMER TOUT CE QUI N'EST PAS UNE ACTION CULINAIRE:**
+❌ SUPPRIMER IMMÉDIATEMENT:
+- Liens et références: "Voir aussi", "Découvrez", "Consultez", "Retrouvez"
+- Navigation: "Retour", "Suivant", "Page précédente", "Menu"
+- Social/Partage: "Partager", "Commenter", "Liker", "Épingler", "Tweeter", "Facebook", "Instagram"
+- Métadonnées: "Commentaires", "Avis", "Notes", "Évaluation", "Imprimer", "PDF"
+- Publicité: "Sponsorisé", "Publicité", "Annonce", "Promotion"
+- Appels à l'action: "Abonnez-vous", "Inscrivez-vous", "Newsletter", "S'inscrire"
+- Texte promotionnel: "Découvrez nos", "Visitez notre", "Plus de recettes"
+- Tout texte contenant des URLs (http://, https://, www.)
+- Tout texte entre crochets avec parenthèses: [texte](url)
+- Texte vide ou < 10 caractères
+- Texte sans verbe d'action culinaire
 
-3. **FILTRER les ingrédients:**
-   - GARDER UNIQUEMENT les vrais ingrédients alimentaires
-   - SUPPRIMER: liens, publicités, textes parasites
-   - Standardiser les unités: c → tasse, cs → cuillère à soupe, cc → cuillère à café
+✅ GARDER UNIQUEMENT:
+- Actions culinaires claires: "Préchauffer", "Mélanger", "Cuire", "Ajouter", "Verser", "Battre"
+- Instructions de préparation concrètes avec températures, durées, techniques
+- Étapes qui décrivent une transformation d'ingrédients
 
-4. **Vérifier le titre:**
-   - Nettoyer les caractères parasites
-   - Supprimer les URLs ou liens
-   - Garder un titre clair et concis
+**2. INGRÉDIENTS - SUPPRIMER TOUT CE QUI N'EST PAS ALIMENTAIRE:**
+❌ SUPPRIMER IMMÉDIATEMENT:
+- Tout texte contenant "http", "www", ".com", ".fr"
+- Liens markdown: [texte](url)
+- Texte promotionnel: "Découvrez", "Achetez", "Commandez"
+- Métadonnées: "Ingrédients", "Liste", "Pour la recette"
+- Texte vide ou sans nom d'ingrédient
+- Lignes avec uniquement des chiffres ou symboles
+- Tout ce qui n'est pas un aliment réel
 
-**Exemples de nettoyage:**
+✅ GARDER UNIQUEMENT:
+- Ingrédients alimentaires réels avec quantité/unité/nom
+- Format: {amount: "200", unit: "g", name: "farine"}
+- Unités standardisées: g, kg, ml, cl, l, cuillère à soupe, cuillère à café, tasse, pincée
 
-❌ MAUVAIS (à supprimer):
-- Étape: "Voir aussi: [quiche](https://cuisine.journaldesfemmes.fr/recette-quiche)"
-- Étape: "Commentaires (45)"
-- Étape: "Partager cette recette sur Facebook"
-- Ingrédient: "Découvrez nos autres recettes sur https://..."
+**3. TITRE - NETTOYER AGRESSIVEMENT:**
+❌ SUPPRIMER:
+- URLs, liens, balises HTML
+- Suffixes du site: "- Journal des Femmes", "| Marmiton", "- Recette"
+- Caractères spéciaux: �, □, ▢, ◊
+- Texte promotionnel
 
-✅ BON (à garder):
-- Étape: "Préchauffer le four à 180°C"
-- Étape: "Mélanger la farine et le sucre dans un saladier"
-- Ingrédient: "200 g de farine"
-- Ingrédient: "3 œufs"
+✅ GARDER:
+- Nom de la recette uniquement, clair et concis
 
-**Format de réponse (JSON uniquement):**
+**4. DESCRIPTION - FILTRER:**
+❌ SUPPRIMER:
+- Appels à l'action marketing
+- Liens vers d'autres recettes
+- Métadonnées du site
+
+✅ GARDER:
+- Description culinaire pure de la recette
+- Contexte culturel ou historique pertinent
+
+**EXEMPLES CONCRETS:**
+
+❌ ÉTAPES À SUPPRIMER:
+- "Voir aussi: Tarte aux pommes facile"
+- "Commentaires (127)"
+- "Partagez cette recette sur Facebook"
+- "Découvrez toutes nos recettes de desserts"
+- "Retour aux recettes"
+- "[Quiche lorraine](https://site.com/quiche)"
+- "Abonnez-vous à notre newsletter"
+- "★★★★☆ (4.5/5)"
+
+❌ INGRÉDIENTS À SUPPRIMER:
+- "Ingrédients pour 4 personnes:"
+- "Découvrez nos produits sur https://..."
+- "[Farine](https://boutique.com/farine)"
+- "Pour la pâte:"
+- ""
+- "---"
+
+✅ ÉTAPES À GARDER:
+- "Préchauffer le four à 180°C (thermostat 6)"
+- "Mélanger la farine et le sucre dans un saladier"
+- "Battre les œufs en omelette et les incorporer"
+- "Cuire 25 minutes jusqu'à ce que le dessus soit doré"
+
+✅ INGRÉDIENTS À GARDER:
+- {"amount": "200", "unit": "g", "name": "farine"}
+- {"amount": "3", "unit": "", "name": "œufs"}
+- {"amount": "1", "unit": "cuillère à soupe", "name": "sucre"}
+
+**FORMAT DE RÉPONSE (JSON strict):**
 {
-  "verified": boolean,
-  "confidence": number (0-1),
+  "verified": true,
+  "confidence": 0.85,
   "improvements": {
-    "title": "titre nettoyé si nécessaire",
-    "description": "description nettoyée si nécessaire",
+    "title": "Titre nettoyé (sans suffixes de site)",
+    "description": "Description culinaire pure (ou null si vide)",
     "ingredients": [
-      {"amount": "200", "unit": "g", "name": "farine"},
-      {"amount": "3", "unit": "", "name": "œufs"}
+      {"amount": "200", "unit": "g", "name": "farine"}
     ],
     "steps": [
-      {"order": 1, "text": "Préchauffer le four à 180°C"},
-      {"order": 2, "text": "Mélanger la farine et le sucre"}
+      {"order": 1, "text": "Préchauffer le four à 180°C"}
     ],
-    "servings": number,
+    "servings": 4,
     "tags": ["dessert", "facile"]
   },
   "issues": [
     {
       "field": "steps",
-      "severity": "error|warning|info",
-      "message": "Description du problème",
-      "suggestion": "Comment le corriger"
+      "severity": "info",
+      "message": "Supprimé 3 étapes non-culinaires (liens, commentaires)",
+      "suggestion": "Données nettoyées automatiquement"
     }
   ],
-  "reasoning": "Explication brève de la vérification et des améliorations"
+  "reasoning": "Nettoyage agressif: supprimé X étapes parasites, Y ingrédients invalides. Gardé uniquement les données culinaires pures."
 }
 
-**RÈGLES STRICTES:**
-- Supprimer TOUTES les données non-culinaires (liens, commentaires, navigation)
-- Ne garder QUE les vraies étapes de préparation
-- Ne garder QUE les vrais ingrédients alimentaires
-- Nettoyer tous les liens markdown et URLs
-- Être impitoyable: en cas de doute, SUPPRIMER
-- Focus sur la qualité, pas la quantité
-- Si une étape ou un ingrédient semble suspect, le SUPPRIMER`;
+**RÈGLES ABSOLUES:**
+1. SUPPRIMER > 50% des données si nécessaire - qualité > quantité
+2. En cas de MOINDRE doute → SUPPRIMER
+3. Zéro tolérance pour: liens, URLs, navigation, social, publicité
+4. Ne JAMAIS garder de texte promotionnel ou métadonnées
+5. Chaque étape DOIT décrire une action culinaire concrète
+6. Chaque ingrédient DOIT être un aliment réel avec quantité
+7. Renvoyer TOUJOURS les données nettoyées dans "improvements", même si peu de changements
+8. Documenter dans "issues" ce qui a été supprimé et pourquoi
+
+**SOIS IMPITOYABLE. NETTOIE TOUT.**`;
 }
 
 /**
@@ -284,6 +334,7 @@ function createFallbackVerification(recipeData: RecipeData): VerificationResult 
 
 /**
  * Apply verification improvements to recipe data
+ * Always applies AI-cleaned data and adds additional client-side filtering
  */
 export function applyVerificationImprovements(
   originalData: RecipeData,
@@ -291,21 +342,29 @@ export function applyVerificationImprovements(
 ): RecipeData {
   const improved = { ...originalData };
   
-  // Apply improvements
+  // ALWAYS apply AI improvements if provided (AI has cleaned the data)
   if (verification.improvements.title) {
-    improved.title = verification.improvements.title;
+    improved.title = cleanTitle(verification.improvements.title);
   }
   
-  if (verification.improvements.description) {
+  if (verification.improvements.description !== undefined) {
     improved.description = verification.improvements.description;
   }
   
+  // ALWAYS use AI-cleaned ingredients if provided
   if (verification.improvements.ingredients && verification.improvements.ingredients.length > 0) {
-    improved.ingredients = verification.improvements.ingredients;
+    improved.ingredients = filterIngredients(verification.improvements.ingredients);
+  } else if (improved.ingredients) {
+    // Fallback: apply client-side filtering to original ingredients
+    improved.ingredients = filterIngredients(improved.ingredients);
   }
   
+  // ALWAYS use AI-cleaned steps if provided
   if (verification.improvements.steps && verification.improvements.steps.length > 0) {
-    improved.steps = verification.improvements.steps;
+    improved.steps = filterSteps(verification.improvements.steps);
+  } else if (improved.steps) {
+    // Fallback: apply client-side filtering to original steps
+    improved.steps = filterSteps(improved.steps);
   }
   
   if (verification.improvements.servings) {
@@ -341,6 +400,107 @@ export function applyVerificationImprovements(
   }
   
   return improved;
+}
+
+/**
+ * Clean title by removing site suffixes and unwanted characters
+ */
+function cleanTitle(title: string): string {
+  return title
+    .replace(/\s*[-|–—]\s*(Recette|Recipe|Marmiton|Journal des Femmes|Cuisine|AllRecipes).*$/i, '')
+    .replace(/[�□▢◊]/g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+/**
+ * Filter ingredients to remove non-food items and invalid entries
+ */
+function filterIngredients(
+  ingredients: Array<{ amount: string; unit: string; name: string; group?: string }>
+): Array<{ amount: string; unit: string; name: string; group?: string }> {
+  const blacklistPatterns = [
+    /https?:\/\//i,           // URLs
+    /www\./i,                 // Website references
+    /\[.*?\]\(.*?\)/,         // Markdown links
+    /voir|découvr|consultez|retrouvez/i, // Navigation text
+    /commentaire|partag|avis|note/i,     // Social/metadata
+    /ingrédients?|liste|pour la/i,       // Section headers
+    /^[-–—•*]+$/,             // Just symbols
+    /^\s*$/,                  // Empty
+  ];
+  
+  return ingredients.filter(ing => {
+    // Must have a name
+    if (!ing.name || ing.name.trim().length < 2) return false;
+    
+    // Check against blacklist patterns
+    for (const pattern of blacklistPatterns) {
+      if (pattern.test(ing.name)) return false;
+    }
+    
+    // Must contain at least one letter
+    if (!/[a-zA-Zàâäéèêëïîôöùûüÿç]/.test(ing.name)) return false;
+    
+    return true;
+  }).map(ing => ({
+    ...ing,
+    name: ing.name.replace(/\[.*?\]\(.*?\)/g, '').trim(), // Remove any remaining markdown links
+  }));
+}
+
+/**
+ * Filter steps to remove non-cooking instructions
+ */
+function filterSteps(
+  steps: Array<{ order: number; text: string }>
+): Array<{ order: number; text: string }> {
+  const blacklistPatterns = [
+    /https?:\/\//i,                      // URLs
+    /www\./i,                            // Website references
+    /\[.*?\]\(.*?\)/,                    // Markdown links
+    /voir aussi|découvrez|consultez|retrouvez|visitez/i, // Navigation
+    /commentaire|partag|liker|épingl|tweet|facebook|instagram/i, // Social
+    /abonn|inscri|newsletter|s'inscrire/i, // Calls to action
+    /imprimer|pdf|télécharg/i,           // Print/download
+    /★|☆|étoile|note|avis/i,             // Ratings
+    /publicité|sponsorisé|annonce|promotion/i, // Ads
+    /retour|suivant|précédent|menu|page/i, // Navigation
+    /^[-–—•*]+$/,                        // Just symbols
+  ];
+  
+  const culinaryVerbs = [
+    /préchauff|chauff|cuir|mélang|ajout|vers|batt|fouett|incorpor|pétri|repos|refroid/i,
+    /coup|hach|éminc|taill|râp|press|écras|mix|blend/i,
+    /assaisonn|sal|poivr|épic|parfum|aromat/i,
+    /enfour|grill|rôti|saut|fri|poêl|bouill|mijot|brais/i,
+    /démoul|dress|serv|décor|garnir|napp|glac/i,
+    /laiss|attend|vérifi|contrôl|surveill/i,
+  ];
+  
+  return steps.filter(step => {
+    const text = step.text.trim();
+    
+    // Must have substantial text
+    if (text.length < 15) return false;
+    
+    // Check against blacklist patterns
+    for (const pattern of blacklistPatterns) {
+      if (pattern.test(text)) return false;
+    }
+    
+    // Should contain at least one culinary verb (or be descriptive enough)
+    const hasCulinaryVerb = culinaryVerbs.some(pattern => pattern.test(text));
+    const isDescriptive = text.length > 30 && /[a-zA-Zàâäéèêëïîôöùûüÿç]{4,}/.test(text);
+    
+    if (!hasCulinaryVerb && !isDescriptive) return false;
+    
+    return true;
+  })
+  .map((step, index) => ({
+    order: index + 1, // Reorder after filtering
+    text: step.text.replace(/\[.*?\]\(.*?\)/g, '').trim(), // Remove markdown links
+  }));
 }
 
 // Made with Bob
