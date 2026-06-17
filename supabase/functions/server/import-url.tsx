@@ -1,14 +1,16 @@
 import { load } from 'npm:cheerio';
 import { tryPythonScraper } from './python-scraper-integration.tsx';
+import { tryFirecrawl } from './firecrawl-integration.tsx';
 
 /**
- * Enhanced URL import with Python recipe-scrapers integration
+ * Enhanced URL import with multiple scraping methods
  *
  * This implementation tries multiple methods in order:
  * 1. Python recipe-scrapers library (highest accuracy, 376+ sites)
- * 2. JSON-LD structured data (TypeScript fallback)
- * 3. Microdata/RDFa markup (TypeScript fallback)
- * 4. Common HTML patterns (TypeScript fallback)
+ * 2. Firecrawl browser-based scraping (for JS-heavy sites)
+ * 3. JSON-LD structured data (TypeScript fallback)
+ * 4. Microdata/RDFa markup (TypeScript fallback)
+ * 5. Common HTML patterns (TypeScript fallback)
  */
 
 interface RecipeData {
@@ -36,6 +38,14 @@ export async function handleUrlImport(url: string) {
     if (pythonResult && pythonResult.confidence >= 0.9) {
       console.log('✅ Python scraper succeeded with high confidence');
       return { data: pythonResult, error: null };
+    }
+
+    // Try Firecrawl for JavaScript-heavy sites or when Python fails
+    console.log('⚠️ Trying Firecrawl browser-based scraping');
+    const firecrawlResult = await tryFirecrawl(url);
+    if (firecrawlResult && firecrawlResult.confidence >= 0.7) {
+      console.log('✅ Firecrawl succeeded');
+      return { data: firecrawlResult, error: null };
     }
 
     // Fallback to TypeScript scraper
@@ -87,7 +97,18 @@ export async function handleUrlImport(url: string) {
       return { data: result, error: null };
     }
 
-    // Method 3: Try common HTML patterns (fallback)
+    // Method 3: Try site-specific extractors
+    const hostname = new URL(url).hostname;
+    if (hostname.includes('journaldesfemmes.fr')) {
+      const jdfResult = extractJournalDesFemmes($);
+      if (jdfResult) {
+        result = { ...result, ...jdfResult };
+        result.confidence = 0.75;
+        return { data: result, error: null };
+      }
+    }
+
+    // Method 4: Try common HTML patterns (fallback)
     const htmlPatternResult = extractFromHtmlPatterns($);
     if (htmlPatternResult) {
       result = { ...result, ...htmlPatternResult };
@@ -293,12 +314,149 @@ function parseInstructions(instructions: any[]): Array<{ order: number; text: st
   }).filter(step => step.text.length > 0);
 }
 
+function extractJournalDesFemmes($: any): Partial<RecipeData> | null {
+  // Journal des Femmes specific extraction
+  const ingredients: string[] = [];
+  const instructions: string[] = [];
+  
+  // Find ingredients section - look for container with ingredient data
+  const ingredientContainer = $('.recipe-ingredients, .ingredients-list, [class*="ingredient"]').first();
+  if (ingredientContainer.length > 0) {
+    // Try to find individual ingredient rows/items
+    const ingredientItems = ingredientContainer.find('li, .ingredient-item, [class*="ingredient-line"]');
+    if (ingredientItems.length > 0) {
+      ingredientItems.each((_: number, el: any) => {
+        const text = $(el).text().trim();
+        // Filter out headers and empty items
+        if (text &&
+            text.length > 2 &&
+            !text.toLowerCase().includes('ingrédient') &&
+            /[a-zA-Zàâäéèêëïîôöùûüÿç]/.test(text)) {
+          ingredients.push(text);
+        }
+      });
+    } else {
+      // Fallback: try to extract from text content
+      const fullText = ingredientContainer.text();
+      const lines = fullText.split(/\n+/).map((line: string) => line.trim()).filter(Boolean);
+      for (const line of lines) {
+        if (line.length > 2 &&
+            !line.toLowerCase().includes('ingrédient') &&
+            /[a-zA-Zàâäéèêëïîôöùûüÿç]/.test(line) &&
+            (/\d/.test(line) || /\b(g|kg|ml|cl|l|cuillère|botte|tranche|pincée)\b/i.test(line))) {
+          ingredients.push(line);
+        }
+      }
+    }
+  }
+  
+  // Find instructions section
+  const instructionContainer = $('.recipe-instructions, .preparation, [class*="instruction"], [class*="preparation"]').first();
+  if (instructionContainer.length > 0) {
+    // Try to find individual instruction steps
+    const instructionItems = instructionContainer.find('li, p, .step, [class*="step"]');
+    if (instructionItems.length > 0) {
+      instructionItems.each((_: number, el: any) => {
+        const text = $(el).text().trim();
+        // Filter out headers and short items
+        if (text &&
+            text.length > 20 &&
+            !text.toLowerCase().includes('préparation') &&
+            !text.toLowerCase().includes('étape')) {
+          instructions.push(text);
+        }
+      });
+    } else {
+      // Fallback: split text content into sentences
+      const fullText = instructionContainer.text();
+      const sentences = fullText.split(/[.!?]+/).map((s: string) => s.trim()).filter(Boolean);
+      for (const sentence of sentences) {
+        if (sentence.length > 20) {
+          instructions.push(sentence);
+        }
+      }
+    }
+  }
+  
+  // If we didn't find much, try alternative selectors
+  if (ingredients.length === 0) {
+    // Look for any elements that might contain ingredient info
+    $('[class*="ingredient"], [id*="ingredient"]').each((_: number, el: any) => {
+      const text = $(el).text().trim();
+      if (text &&
+          text.length > 5 &&
+          text.length < 200 &&
+          !text.toLowerCase().includes('ingrédient') &&
+          /[a-zA-Zàâäéèêëïîôöùûüÿç]/.test(text) &&
+          (/\d/.test(text) || /\b(g|kg|ml|cl|l|cuillère|botte|tranche|pincée)\b/i.test(text))) {
+        ingredients.push(text);
+      }
+    });
+  }
+  
+  if (instructions.length === 0) {
+    // Look for any elements that might contain instruction info
+    $('[class*="step"], [class*="instruction"], [class*="preparation"]').each((_: number, el: any) => {
+      const text = $(el).text().trim();
+      if (text &&
+          text.length > 30 &&
+          text.length < 1000 &&
+          !text.toLowerCase().includes('préparation') &&
+          !text.toLowerCase().includes('étape')) {
+        instructions.push(text);
+      }
+    });
+  }
+  
+  // Deduplicate and clean up
+  const uniqueIngredients = [...new Set(ingredients)].slice(0, 20); // Limit to reasonable number
+  const uniqueInstructions = [...new Set(instructions)].slice(0, 15);
+  
+  if (uniqueIngredients.length === 0 && uniqueInstructions.length === 0) {
+    return null;
+  }
+  
+  return {
+    ingredients: parseIngredientsFrench(uniqueIngredients),
+    steps: parseInstructions(uniqueInstructions),
+  };
+}
+
+function parseIngredientsFrench(ingredients: string[]): Array<{ amount: string; unit: string; name: string }> {
+  return ingredients.map(ing => {
+    // Enhanced regex for French ingredients
+    // Handles patterns like: "300 g de farine", "1 botte d'asperges", "2 cuillères à soupe de sucre"
+    const match = ing.match(/^([\d\/\.\s\-¼½¾⅓⅔⅛⅜⅝⅞]+)?\s*(g|kg|ml|cl|l|cuillères?\s+à\s+soupe|cuillères?\s+à\s+café|c\.?\s*à\s*s\.?|c\.?\s*à\s*c\.?|botte|tranche|tranches|pincée|pincées|gousse|gousses|pot|pots)?\s*(?:de\s+|d')?(.+)$/i);
+    
+    if (match) {
+      return {
+        amount: match[1]?.trim() || '',
+        unit: match[2]?.trim() || '',
+        name: match[3]?.trim() || ing
+      };
+    }
+    
+    // Fallback: simpler pattern without "de/d'"
+    const simpleMatch = ing.match(/^([\d\/\.\s\-¼½¾⅓⅔⅛⅜⅝⅞]+)?\s*([a-zA-Zàâäéèêëïîôöùûüÿç\.]+)?\s*(.+)$/);
+    if (simpleMatch && simpleMatch[3]) {
+      return {
+        amount: simpleMatch[1]?.trim() || '',
+        unit: simpleMatch[2]?.trim() || '',
+        name: simpleMatch[3]?.trim()
+      };
+    }
+    
+    // If no pattern matches, return the whole string as the ingredient name
+    return { amount: '', unit: '', name: ing.trim() };
+  });
+}
+
 function extractTags(recipe: any): string[] {
   const tags: string[] = [];
   
   if (recipe.recipeCategory) {
-    const categories = Array.isArray(recipe.recipeCategory) 
-      ? recipe.recipeCategory 
+    const categories = Array.isArray(recipe.recipeCategory)
+      ? recipe.recipeCategory
       : [recipe.recipeCategory];
     tags.push(...categories);
   }
