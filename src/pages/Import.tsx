@@ -9,6 +9,7 @@ import { Alert, AlertDescription, AlertTitle } from '../app/components/ui/alert'
 import type { DraftSchema, ImportFlag } from '../lib/types/recipe'
 import { z } from 'zod'
 import { extractTextFromImage, parseRecipeText } from '../lib/ocr'
+import { Swirling } from '../components/Swirling'
 
 type ImportStage =
   | 'idle'
@@ -437,10 +438,19 @@ export function Import() {
                 <button
                   onClick={handleUrlImport}
                   disabled={loading || !url}
-                  className="px-6 py-3 bg-tertiary text-white rounded-lg hover:bg-tertiary disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                  className="px-6 py-3 bg-tertiary text-white rounded-lg hover:bg-tertiary disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 min-w-[120px]"
                 >
-                  <LinkIcon size={20} />
-                  {loading ? 'Importing…' : 'Import'}
+                  {loading ? (
+                    <>
+                      <Swirling className="w-5 h-5" />
+                      <span>Importing…</span>
+                    </>
+                  ) : (
+                    <>
+                      <LinkIcon size={20} />
+                      <span>Import</span>
+                    </>
+                  )}
                 </button>
               </div>
             </div>
