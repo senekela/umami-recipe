@@ -155,7 +155,18 @@ ${JSON.stringify({
 }, null, 2)}
 \`\`\`
 
-**MISSION CRITIQUE: FILTRAGE AGRESSIF**
+**RÈGLE ABSOLUE #0 - NE JAMAIS INVENTER DE DONNÉES:**
+🚫 INTERDIT ABSOLU:
+- N'AJOUTE JAMAIS de quantités qui ne sont pas dans les données d'origine
+- N'INVENTE JAMAIS d'ingrédients supplémentaires
+- NE MODIFIE JAMAIS les quantités existantes (200g reste 200g, pas 250g)
+- NE COMPLÈTE JAMAIS les quantités manquantes par des suppositions
+- Si une quantité est absente dans l'original → la laisser vide ("amount": "")
+- Si un ingrédient n'a pas d'unité dans l'original → ne pas en inventer
+
+✅ TON SEUL RÔLE: SUPPRIMER ce qui est invalide, PAS ajouter ou modifier
+
+**MISSION CRITIQUE: FILTRAGE AGRESSIF (SUPPRESSION UNIQUEMENT)**
 
 **1. ÉTAPES - SUPPRIMER TOUT CE QUI N'EST PAS UNE ACTION CULINAIRE:**
 ❌ SUPPRIMER IMMÉDIATEMENT:
@@ -186,10 +197,13 @@ ${JSON.stringify({
 - Lignes avec uniquement des chiffres ou symboles
 - Tout ce qui n'est pas un aliment réel
 
-✅ GARDER UNIQUEMENT:
-- Ingrédients alimentaires réels avec quantité/unité/nom
+✅ GARDER UNIQUEMENT (SANS MODIFICATION):
+- Ingrédients alimentaires réels EXACTEMENT comme dans l'original
 - Format: {amount: "200", unit: "g", name: "farine"}
-- Unités standardisées: g, kg, ml, cl, l, cuillère à soupe, cuillère à café, tasse, pincée
+- ⚠️ COPIE EXACTE des quantités: si l'original dit "200", tu écris "200" (pas "250", pas "2")
+- ⚠️ Si amount est vide dans l'original → le laisser vide (ne pas inventer "1" ou "100")
+- ⚠️ Si unit est vide dans l'original → le laisser vide (ne pas inventer "g" ou "pièce")
+- Unités acceptées (si présentes): g, kg, ml, cl, l, cuillère à soupe, cuillère à café, tasse, pincée
 
 **3. TITRE - NETTOYER AGRESSIVEMENT:**
 ❌ SUPPRIMER:
@@ -237,10 +251,16 @@ ${JSON.stringify({
 - "Battre les œufs en omelette et les incorporer"
 - "Cuire 25 minutes jusqu'à ce que le dessus soit doré"
 
-✅ INGRÉDIENTS À GARDER:
-- {"amount": "200", "unit": "g", "name": "farine"}
-- {"amount": "3", "unit": "", "name": "œufs"}
-- {"amount": "1", "unit": "cuillère à soupe", "name": "sucre"}
+✅ INGRÉDIENTS À GARDER (COPIE EXACTE):
+- Si original: {"amount": "200", "unit": "g", "name": "farine"} → GARDER TEL QUEL
+- Si original: {"amount": "3", "unit": "", "name": "œufs"} → GARDER TEL QUEL (ne pas ajouter "pièces")
+- Si original: {"amount": "", "unit": "", "name": "sel"} → GARDER TEL QUEL (ne pas inventer "1 pincée")
+- Si original: {"amount": "1", "unit": "cuillère à soupe", "name": "sucre"} → GARDER TEL QUEL
+
+❌ EXEMPLES D'HALLUCINATIONS INTERDITES:
+- Original: {"amount": "", "unit": "", "name": "sel"} → ❌ NE PAS transformer en {"amount": "1", "unit": "pincée", "name": "sel"}
+- Original: {"amount": "200", "unit": "g", "name": "farine"} → ❌ NE PAS changer en {"amount": "250", "unit": "g", "name": "farine"}
+- Original: {"amount": "3", "unit": "", "name": "œufs"} → ❌ NE PAS ajouter {"amount": "3", "unit": "pièces", "name": "œufs"}
 
 **FORMAT DE RÉPONSE (JSON strict):**
 {
@@ -275,11 +295,19 @@ ${JSON.stringify({
 3. Zéro tolérance pour: liens, URLs, navigation, social, publicité
 4. Ne JAMAIS garder de texte promotionnel ou métadonnées
 5. Chaque étape DOIT décrire une action culinaire concrète
-6. Chaque ingrédient DOIT être un aliment réel avec quantité
+6. Chaque ingrédient DOIT être un aliment réel
 7. Renvoyer TOUJOURS les données nettoyées dans "improvements", même si peu de changements
 8. Documenter dans "issues" ce qui a été supprimé et pourquoi
+9. ⚠️ RÈGLE CRITIQUE: NE JAMAIS MODIFIER OU INVENTER des quantités/unités
+10. ⚠️ COPIER EXACTEMENT les amount/unit des ingrédients valides (même si vides)
 
-**SOIS IMPITOYABLE. NETTOIE TOUT.**`;
+**RAPPEL FINAL - ANTI-HALLUCINATION:**
+- Tu es un FILTRE (suppression), pas un GÉNÉRATEUR (ajout)
+- COPIE les quantités exactes, N'INVENTE RIEN
+- Si une donnée manque dans l'original → la laisser manquante
+- Ton job: éliminer le bruit, PAS compléter les trous
+
+**SOIS IMPITOYABLE DANS LA SUPPRESSION, MAIS FIDÈLE AUX DONNÉES ORIGINALES.**`;
 }
 
 /**
