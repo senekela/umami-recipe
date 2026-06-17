@@ -71,15 +71,15 @@ export async function verifyRecipeData(recipeData: RecipeData): Promise<Verifica
         messages: [
           {
             role: 'system',
-            content: 'You are a recipe data verification expert. Your job is to validate and improve parsed recipe data, ensuring accuracy, completeness, and proper formatting.'
+            content: 'Tu es un expert en nettoyage et vérification de données de recettes. Ton rôle est de filtrer impitoyablement les données parasites (liens, commentaires, navigation, publicités) et de ne garder QUE les vraies instructions de cuisine et les vrais ingrédients. Supprime tout ce qui n\'est pas directement lié à la préparation de la recette.'
           },
           {
             role: 'user',
             content: prompt
           }
         ],
-        temperature: 0.3, // Low temperature for consistent verification
-        max_tokens: 2000,
+        temperature: 0.2, // Very low temperature for consistent, conservative cleaning
+        max_tokens: 2500,
         response_format: { type: 'json_object' }
       }),
     });
@@ -111,9 +111,9 @@ export async function verifyRecipeData(recipeData: RecipeData): Promise<Verifica
  * Build the verification prompt for GitHub Models
  */
 function buildVerificationPrompt(recipeData: RecipeData): string {
-  return `Verify and improve the following parsed recipe data. Analyze each field for accuracy, completeness, and proper formatting.
+  return `Tu es un expert en vérification de données de recettes. Ton travail est de nettoyer, valider et améliorer les données de recettes extraites, en éliminant toutes les données corrompues ou illisibles.
 
-**Recipe Data:**
+**Données de recette brutes (peuvent contenir du bruit):**
 \`\`\`json
 ${JSON.stringify({
   title: recipeData.title,
@@ -126,43 +126,81 @@ ${JSON.stringify({
 }, null, 2)}
 \`\`\`
 
-**Your Task:**
-1. Verify the title is clear, concise, and properly formatted
-2. Check if ingredients are properly parsed with amount, unit, and name
-3. Validate that steps are in logical order and complete
-4. Ensure servings is a reasonable number (if present)
-5. Verify tags are relevant and properly categorized
-6. Identify any missing or incorrect data
+**Ta mission:**
+1. **NETTOYER les données corrompues:**
+   - Supprimer TOUS les liens markdown: [texte](url) → garder uniquement "texte"
+   - Supprimer les URLs complètes: https://...
+   - Supprimer les balises HTML: <div>, </p>, etc.
+   - Supprimer les caractères spéciaux illisibles: �, □, etc.
+   - Supprimer les métadonnées du site: "Commentaires", "Partager", "Imprimer", etc.
 
-**Response Format (JSON only):**
+2. **FILTRER les étapes:**
+   - GARDER UNIQUEMENT les vraies instructions de cuisine
+   - SUPPRIMER: commentaires, publicités, navigation, métadonnées
+   - SUPPRIMER: "Voir les commentaires", "Partager la recette", "Imprimer", etc.
+   - SUPPRIMER: textes promotionnels ou non-culinaires
+
+3. **FILTRER les ingrédients:**
+   - GARDER UNIQUEMENT les vrais ingrédients alimentaires
+   - SUPPRIMER: liens, publicités, textes parasites
+   - Standardiser les unités: c → tasse, cs → cuillère à soupe, cc → cuillère à café
+
+4. **Vérifier le titre:**
+   - Nettoyer les caractères parasites
+   - Supprimer les URLs ou liens
+   - Garder un titre clair et concis
+
+**Exemples de nettoyage:**
+
+❌ MAUVAIS (à supprimer):
+- Étape: "Voir aussi: [quiche](https://cuisine.journaldesfemmes.fr/recette-quiche)"
+- Étape: "Commentaires (45)"
+- Étape: "Partager cette recette sur Facebook"
+- Ingrédient: "Découvrez nos autres recettes sur https://..."
+
+✅ BON (à garder):
+- Étape: "Préchauffer le four à 180°C"
+- Étape: "Mélanger la farine et le sucre dans un saladier"
+- Ingrédient: "200 g de farine"
+- Ingrédient: "3 œufs"
+
+**Format de réponse (JSON uniquement):**
 {
   "verified": boolean,
   "confidence": number (0-1),
   "improvements": {
-    "title": "improved title if needed",
-    "description": "improved description if needed",
-    "ingredients": [{"amount": "1", "unit": "cup", "name": "flour"}],
-    "steps": [{"order": 1, "text": "improved step"}],
+    "title": "titre nettoyé si nécessaire",
+    "description": "description nettoyée si nécessaire",
+    "ingredients": [
+      {"amount": "200", "unit": "g", "name": "farine"},
+      {"amount": "3", "unit": "", "name": "œufs"}
+    ],
+    "steps": [
+      {"order": 1, "text": "Préchauffer le four à 180°C"},
+      {"order": 2, "text": "Mélanger la farine et le sucre"}
+    ],
     "servings": number,
-    "tags": ["tag1", "tag2"]
+    "tags": ["dessert", "facile"]
   },
   "issues": [
     {
-      "field": "ingredients",
+      "field": "steps",
       "severity": "error|warning|info",
-      "message": "Description of the issue",
-      "suggestion": "How to fix it"
+      "message": "Description du problème",
+      "suggestion": "Comment le corriger"
     }
   ],
-  "reasoning": "Brief explanation of your verification and improvements"
+  "reasoning": "Explication brève de la vérification et des améliorations"
 }
 
-**Important:**
-- Only include fields in "improvements" that need changes
-- Be conservative - don't change data that's already correct
-- Focus on fixing parsing errors, not rewriting content
-- Identify critical issues that would prevent recipe from working
-- Provide actionable suggestions for manual review`;
+**RÈGLES STRICTES:**
+- Supprimer TOUTES les données non-culinaires (liens, commentaires, navigation)
+- Ne garder QUE les vraies étapes de préparation
+- Ne garder QUE les vrais ingrédients alimentaires
+- Nettoyer tous les liens markdown et URLs
+- Être impitoyable: en cas de doute, SUPPRIMER
+- Focus sur la qualité, pas la quantité
+- Si une étape ou un ingrédient semble suspect, le SUPPRIMER`;
 }
 
 /**
