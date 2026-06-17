@@ -1,6 +1,7 @@
 import { load } from 'npm:cheerio';
 import { tryPythonScraper } from './python-scraper-integration.tsx';
 import { tryFirecrawl } from './firecrawl-integration.tsx';
+import { verifyRecipeData, applyVerificationImprovements } from './verify-recipe-data.tsx';
 
 /**
  * Enhanced URL import with multiple scraping methods
@@ -33,99 +34,139 @@ interface RecipeData {
 
 export async function handleUrlImport(url: string) {
   try {
+    let scrapedData: RecipeData | null = null;
+    let scrapingMethod = '';
+
     // Try Python scraper first (highest confidence for supported sites)
     const pythonResult = await tryPythonScraper(url);
     if (pythonResult && pythonResult.confidence >= 0.9) {
       console.log('✅ Python scraper succeeded with high confidence');
-      return { data: pythonResult, error: null };
+      scrapedData = pythonResult;
+      scrapingMethod = 'python-scraper';
     }
 
     // Try Firecrawl for JavaScript-heavy sites or when Python fails
-    console.log('⚠️ Trying Firecrawl browser-based scraping');
-    const firecrawlResult = await tryFirecrawl(url);
-    if (firecrawlResult && firecrawlResult.confidence >= 0.7) {
-      console.log('✅ Firecrawl succeeded');
-      return { data: firecrawlResult, error: null };
+    if (!scrapedData) {
+      console.log('⚠️ Trying Firecrawl browser-based scraping');
+      const firecrawlResult = await tryFirecrawl(url);
+      if (firecrawlResult && firecrawlResult.confidence >= 0.7) {
+        console.log('✅ Firecrawl succeeded');
+        scrapedData = firecrawlResult;
+        scrapingMethod = 'firecrawl';
+      }
     }
 
     // Fallback to TypeScript scraper
-    console.log('⚠️ Falling back to TypeScript scraper');
-    const response = await fetch(url, {
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (compatible; UmamiBot/1.0; +https://umami.app/bot)',
-        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-        'Accept-Language': 'en-US,en;q=0.9',
-      }
-    });
+    if (!scrapedData) {
+      console.log('⚠️ Falling back to TypeScript scraper');
+      scrapingMethod = 'typescript-scraper';
+      
+      const response = await fetch(url, {
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (compatible; UmamiBot/1.0; +https://umami.app/bot)',
+          'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+          'Accept-Language': 'en-US,en;q=0.9',
+        }
+      });
 
-    if (!response.ok) {
+      if (!response.ok) {
+        return {
+          error: `Couldn't reach that URL (${response.status}). Is it publicly accessible?`,
+          partial: null
+        };
+      }
+
+      const html = await response.text();
+      const $ = load(html);
+
+      let result: RecipeData = {
+        title: null,
+        description: null,
+        image_url: null,
+        source_url: url,
+        ingredients: [],
+        steps: [],
+        tags: [],
+        confidence: 0.5,
+        raw_text: null,
+        errors: []
+      };
+
+      // Method 1: Try JSON-LD structured data (most reliable)
+      const jsonLdData = extractJsonLd($);
+      if (jsonLdData) {
+        result = { ...result, ...jsonLdData };
+        result.confidence = 0.95;
+        scrapedData = result;
+      }
+
+      // Method 2: Try Microdata/RDFa
+      if (!scrapedData) {
+        const microdataResult = extractMicrodata($);
+        if (microdataResult) {
+          result = { ...result, ...microdataResult };
+          result.confidence = 0.85;
+          scrapedData = result;
+        }
+      }
+
+      // Method 3: Try site-specific extractors
+      if (!scrapedData) {
+        const hostname = new URL(url).hostname;
+        if (hostname.includes('journaldesfemmes.fr')) {
+          const jdfResult = extractJournalDesFemmes($);
+          if (jdfResult) {
+            result = { ...result, ...jdfResult };
+            result.confidence = 0.75;
+            scrapedData = result;
+          }
+        }
+      }
+
+      // Method 4: Try common HTML patterns (fallback)
+      if (!scrapedData) {
+        const htmlPatternResult = extractFromHtmlPatterns($);
+        if (htmlPatternResult) {
+          result = { ...result, ...htmlPatternResult };
+          result.confidence = 0.6;
+          scrapedData = result;
+        }
+      }
+
+      // Method 5: Basic metadata extraction
+      if (!scrapedData) {
+        result.title = $('title').text().split('|')[0].split('-')[0].trim() || 'Untitled Recipe';
+        result.description = $('meta[name="description"]').attr('content') ||
+                            $('meta[property="og:description"]').attr('content') || null;
+        result.image_url = $('meta[property="og:image"]').attr('content') ||
+                          $('meta[name="twitter:image"]').attr('content') || null;
+        result.confidence = 0.3;
+        result.errors.push('No structured recipe data found. Please fill in the fields manually.');
+        scrapedData = result;
+      }
+    }
+
+    // If we still don't have data, return error
+    if (!scrapedData) {
       return {
-        error: `Couldn't reach that URL (${response.status}). Is it publicly accessible?`,
+        error: 'Could not extract recipe data from this URL',
         partial: null
       };
     }
 
-    const html = await response.text();
-    const $ = load(html);
+    // Step: Verify and improve the scraped data with GitHub Models
+    console.log(`🔍 Verifying recipe data (scraped via ${scrapingMethod})...`);
+    const verification = await verifyRecipeData(scrapedData);
+    
+    console.log(`✓ Verification complete: ${verification.verified ? 'PASSED' : 'NEEDS REVIEW'}`);
+    console.log(`  Confidence: ${Math.round(verification.confidence * 100)}%`);
+    console.log(`  Issues found: ${verification.issues.length}`);
+    console.log(`  Reasoning: ${verification.reasoning}`);
 
-    let result: RecipeData = {
-      title: null,
-      description: null,
-      image_url: null,
-      source_url: url,
-      ingredients: [],
-      steps: [],
-      tags: [],
-      confidence: 0.5,
-      raw_text: null,
-      errors: []
-    };
+    // Apply verification improvements
+    const verifiedData = applyVerificationImprovements(scrapedData, verification);
 
-    // Method 1: Try JSON-LD structured data (most reliable)
-    const jsonLdData = extractJsonLd($);
-    if (jsonLdData) {
-      result = { ...result, ...jsonLdData };
-      result.confidence = 0.95;
-      return { data: result, error: null };
-    }
-
-    // Method 2: Try Microdata/RDFa
-    const microdataResult = extractMicrodata($);
-    if (microdataResult) {
-      result = { ...result, ...microdataResult };
-      result.confidence = 0.85;
-      return { data: result, error: null };
-    }
-
-    // Method 3: Try site-specific extractors
-    const hostname = new URL(url).hostname;
-    if (hostname.includes('journaldesfemmes.fr')) {
-      const jdfResult = extractJournalDesFemmes($);
-      if (jdfResult) {
-        result = { ...result, ...jdfResult };
-        result.confidence = 0.75;
-        return { data: result, error: null };
-      }
-    }
-
-    // Method 4: Try common HTML patterns (fallback)
-    const htmlPatternResult = extractFromHtmlPatterns($);
-    if (htmlPatternResult) {
-      result = { ...result, ...htmlPatternResult };
-      result.confidence = 0.6;
-      return { data: result, error: null };
-    }
-
-    // Method 4: Basic metadata extraction
-    result.title = $('title').text().split('|')[0].split('-')[0].trim() || 'Untitled Recipe';
-    result.description = $('meta[name="description"]').attr('content') || 
-                        $('meta[property="og:description"]').attr('content') || null;
-    result.image_url = $('meta[property="og:image"]').attr('content') || 
-                      $('meta[name="twitter:image"]').attr('content') || null;
-    result.confidence = 0.3;
-    result.errors.push('No structured recipe data found. Please fill in the fields manually.');
-
-    return { data: result, error: null };
+    return { data: verifiedData, error: null };
   } catch (err) {
     console.error('URL import error:', err);
     return {
