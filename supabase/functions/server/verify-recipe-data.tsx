@@ -67,7 +67,8 @@ export async function verifyRecipeData(recipeData: RecipeData): Promise<Verifica
   try {
     const prompt = buildVerificationPrompt(recipeData);
     
-    console.log('🔄 Calling GitHub Models API (gpt-4o-mini)...');
+    const model = "openai/gpt-4.1-nano";
+    console.log(`🔄 Calling GitHub Models API (${model})...`);
     const response = await fetch(GITHUB_MODELS_ENDPOINT, {
       method: 'POST',
       headers: {
@@ -75,7 +76,7 @@ export async function verifyRecipeData(recipeData: RecipeData): Promise<Verifica
         'Authorization': `Bearer ${GITHUB_MODELS_API_KEY}`,
       },
       body: JSON.stringify({
-        model: 'gpt-4o-mini', // Using GPT-4o mini (similar to 4.1 micro)
+        model: model,
         messages: [
           {
             role: 'system',
