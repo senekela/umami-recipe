@@ -552,7 +552,7 @@ export function Import() {
                   <div className="bg-white border-2 border-dashed border-gray-300 rounded-lg p-12 text-center hover:border-tertiary transition-colors">
                     <Camera size={48} className="mx-auto mb-4 text-tertiary" />
                     <p className="text-lg font-medium text-primary mb-2">
-                      Take or upload a photo
+                      Take a photo or choose from gallery
                     </p>
                     <p className="text-sm text-primary/60">
                       Photo will be processed automatically
@@ -562,7 +562,6 @@ export function Import() {
                     ref={fileInputRef}
                     type="file"
                     accept="image/*"
-                    capture="environment"
                     onChange={handlePhotoSelected}
                     disabled={loading}
                     className="hidden"
