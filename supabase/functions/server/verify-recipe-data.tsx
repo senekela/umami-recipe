@@ -52,14 +52,22 @@ const GITHUB_MODELS_ENDPOINT = 'https://models.inference.ai.azure.com/chat/compl
  * Verify and improve recipe data using GitHub Models
  */
 export async function verifyRecipeData(recipeData: RecipeData): Promise<VerificationResult> {
+  const startTime = Date.now();
+  
   if (!GITHUB_MODELS_API_KEY) {
-    console.warn('GitHub Models API key not configured, skipping verification');
+    console.warn('⚠️ GitHub Models API key not configured (GITHUB_TOKEN missing)');
+    console.warn('⚠️ Falling back to client-side filtering only');
+    console.warn('⚠️ To enable AI cleaning: supabase secrets set GITHUB_TOKEN=your_token');
     return createFallbackVerification(recipeData);
   }
+
+  console.log('🤖 AI VERIFICATION STARTED');
+  console.log(`📊 Input: ${recipeData.ingredients?.length || 0} ingredients, ${recipeData.steps?.length || 0} steps`);
 
   try {
     const prompt = buildVerificationPrompt(recipeData);
     
+    console.log('🔄 Calling GitHub Models API (gpt-4o-mini)...');
     const response = await fetch(GITHUB_MODELS_ENDPOINT, {
       method: 'POST',
       headers: {
@@ -85,7 +93,9 @@ export async function verifyRecipeData(recipeData: RecipeData): Promise<Verifica
     });
 
     if (!response.ok) {
-      console.error('GitHub Models API error:', response.status, await response.text());
+      const errorText = await response.text();
+      console.error('❌ GitHub Models API error:', response.status, errorText);
+      console.error('❌ Falling back to client-side filtering');
       return createFallbackVerification(recipeData);
     }
 
@@ -93,16 +103,35 @@ export async function verifyRecipeData(recipeData: RecipeData): Promise<Verifica
     const content = result.choices?.[0]?.message?.content;
     
     if (!content) {
-      console.error('No content in GitHub Models response');
+      console.error('❌ No content in GitHub Models response');
+      console.error('❌ Falling back to client-side filtering');
       return createFallbackVerification(recipeData);
     }
 
     const verification = JSON.parse(content) as VerificationResult;
+    const duration = Date.now() - startTime;
+    
+    console.log('✅ AI VERIFICATION COMPLETED');
+    console.log(`⏱️  Duration: ${duration}ms`);
+    console.log(`📊 Output: ${verification.improvements.ingredients?.length || 0} ingredients, ${verification.improvements.steps?.length || 0} steps`);
+    console.log(`🎯 Confidence: ${Math.round(verification.confidence * 100)}%`);
+    console.log(`⚠️  Issues found: ${verification.issues.length}`);
+    
+    // Calculate what was removed
+    const ingredientsRemoved = (recipeData.ingredients?.length || 0) - (verification.improvements.ingredients?.length || 0);
+    const stepsRemoved = (recipeData.steps?.length || 0) - (verification.improvements.steps?.length || 0);
+    
+    if (ingredientsRemoved > 0 || stepsRemoved > 0) {
+      console.log(`🧹 Cleaned: ${ingredientsRemoved} ingredients, ${stepsRemoved} steps removed`);
+    }
     
     // Ensure the verification result has the correct structure
     return normalizeVerificationResult(verification, recipeData);
   } catch (error) {
-    console.error('Recipe verification error:', error);
+    const duration = Date.now() - startTime;
+    console.error('❌ Recipe verification error:', error);
+    console.error(`⏱️  Failed after ${duration}ms`);
+    console.error('❌ Falling back to client-side filtering');
     return createFallbackVerification(recipeData);
   }
 }
