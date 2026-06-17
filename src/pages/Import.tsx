@@ -438,7 +438,7 @@ export function Import() {
                 <button
                   onClick={handleUrlImport}
                   disabled={loading || !url}
-                  className="px-6 py-3 bg-tertiary text-white rounded-lg hover:bg-tertiary disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 min-w-[120px]"
+                  className="px-6 py-3 bg-tertiary text-white rounded-lg hover:bg-[#c66647] active:bg-[#b85537] transition-colors disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-tertiary flex items-center justify-center gap-2 min-w-[120px]"
                 >
                   {loading ? (
                     <>

@@ -147,7 +147,7 @@ export function RecipeScaling({ originalServings, ingredients, onScalingChange }
           <label className="text-sm font-medium text-primary">Portions</label>
           <div className="flex items-center gap-3">
             <button
-              onClick={() => handleServingsChange(Math.max(0.5, targetServings - 1))}
+              onClick={() => handleServingsChange(Math.max(1, targetServings - 1))}
               className="w-10 h-10 rounded-full bg-background border border-border/30 flex items-center justify-center hover:bg-primary/5 transition-colors"
               aria-label="Diminuer les portions"
             >
@@ -157,11 +157,11 @@ export function RecipeScaling({ originalServings, ingredients, onScalingChange }
               <input
                 type="number"
                 value={targetServings}
-                onChange={(e) => handleServingsChange(parseFloat(e.target.value) || 0)}
+                onChange={(e) => handleServingsChange(parseInt(e.target.value) || 0)}
                 className="w-full text-center text-2xl font-semibold bg-transparent border-none outline-none text-primary"
-                min="0.5"
+                min="1"
                 max="50"
-                step="0.5"
+                step="1"
               />
               <p className="text-xs text-muted-foreground mt-1">
                 Recette originale : {originalServings} personne{originalServings > 1 ? 's' : ''}

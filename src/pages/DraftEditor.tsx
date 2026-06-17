@@ -417,8 +417,9 @@ export function DraftEditor() {
               placeholder="4"
               min="1"
               max="50"
+              step="1"
             />
-            <p className="text-xs text-primary/60 mt-1">Number of servings this recipe makes (optional, used for scaling)</p>
+            <p className="text-xs text-primary/60 mt-1">Number of servings this recipe makes (integer only, optional, used for scaling)</p>
           </div>
 
           </div>
@@ -532,7 +533,7 @@ export function DraftEditor() {
           <button
             onClick={handlePublish}
             disabled={!validation.isReadyToPublish}
-            className="flex-1 bg-tertiary text-white py-3 rounded-lg font-medium hover:bg-tertiary flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="flex-1 bg-tertiary text-white py-3 rounded-lg font-medium hover:bg-[#c66647] active:bg-[#b85537] transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-tertiary"
             title={!validation.isReadyToPublish ? 'Complete all required fields to publish' : 'Publish recipe'}
           >
             <Eye size={20} />
@@ -559,7 +560,7 @@ export function DraftEditor() {
                 navigator.clipboard.writeText(`${window.location.origin}/share/${draft.share_token}`)
                 alert('Link copied!')
               }}
-              className="w-full bg-tertiary text-white py-2 rounded-lg hover:bg-tertiary"
+              className="w-full bg-tertiary text-white py-2 rounded-lg hover:bg-[#c66647] active:bg-[#b85537] transition-colors"
             >
               Copy Link
             </button>

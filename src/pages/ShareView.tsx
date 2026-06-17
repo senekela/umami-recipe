@@ -141,7 +141,7 @@ export function ShareView() {
 
           <button
             onClick={handleFork}
-            className="w-full sm:w-auto mb-8 px-6 py-3 bg-tertiary text-white rounded-lg hover:bg-tertiary flex items-center justify-center gap-2"
+            className="w-full sm:w-auto mb-8 px-6 py-3 bg-tertiary text-white rounded-lg hover:bg-[#c66647] active:bg-[#b85537] transition-colors flex items-center justify-center gap-2"
           >
             <Copy size={20} />
             Fork this recipe
