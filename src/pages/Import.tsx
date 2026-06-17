@@ -3,7 +3,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom'
 import { supabase, callEdgeFunction } from '../lib/supabase'
 import { useAuth } from '../hooks/useAuth'
 import { Layout } from '../components/Layout'
-import { Link as LinkIcon, Camera, Sparkles, AlertTriangle, RefreshCcw, CheckCircle2 } from 'lucide-react'
+import { Link as LinkIcon, Camera, Sparkles, AlertTriangle, RefreshCcw, CheckCircle2, FileText } from 'lucide-react'
 import { Progress } from '../app/components/ui/progress'
 import { Alert, AlertDescription, AlertTitle } from '../app/components/ui/alert'
 import type { DraftSchema, ImportFlag } from '../lib/types/recipe'
@@ -63,6 +63,8 @@ export function Import() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [successMessage, setSuccessMessage] = useState<string | null>(null)
+  const [scrapingLogs, setScrapingLogs] = useState<DraftSchema | null>(null)
+  const [showLogs, setShowLogs] = useState(false)
 
   const [photoStage, setPhotoStage] = useState<ImportStage>('idle')
   const [photoProgress, setPhotoProgress] = useState(0)
@@ -98,6 +100,7 @@ export function Import() {
     setLoading(true)
     setError(null)
     setSuccessMessage(null)
+    setScrapingLogs(null)
 
     try {
       const { data, error: edgeError } = await callEdgeFunction<DraftSchema>('import-url', { url })
@@ -118,6 +121,8 @@ export function Import() {
       }
 
       if (data) {
+        // Store scraping logs for debugging
+        setScrapingLogs(data)
         if (data.confidence && data.confidence >= 0.9) {
           setSuccessMessage('✨ Recipe imported with high confidence!')
         } else if (data.confidence && data.confidence >= 0.7) {
@@ -439,6 +444,85 @@ export function Import() {
                 </button>
               </div>
             </div>
+
+            {scrapingLogs && (
+              <div className="flex justify-end">
+                <button
+                  onClick={() => setShowLogs(!showLogs)}
+                  className="inline-flex items-center gap-2 px-3 py-1.5 text-xs font-medium text-gray-700 bg-gray-100 border border-gray-300 rounded-lg hover:bg-gray-200 transition-colors"
+                >
+                  <FileText size={14} />
+                  {showLogs ? 'Hide' : 'View'} Scraping Logs
+                </button>
+              </div>
+            )}
+
+            {showLogs && scrapingLogs && (
+              <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 space-y-3">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-sm font-semibold text-gray-900">Scraping Results</h3>
+                  <span className={`text-xs px-2 py-1 rounded-full ${
+                    scrapingLogs.confidence >= 0.9 ? 'bg-green-100 text-green-800' :
+                    scrapingLogs.confidence >= 0.7 ? 'bg-yellow-100 text-yellow-800' :
+                    'bg-red-100 text-red-800'
+                  }`}>
+                    Confidence: {Math.round((scrapingLogs.confidence || 0) * 100)}%
+                  </span>
+                </div>
+
+                <div className="space-y-2 text-xs">
+                  <div>
+                    <span className="font-medium text-gray-700">Title:</span>
+                    <span className="ml-2 text-gray-600">{scrapingLogs.title || 'N/A'}</span>
+                  </div>
+                  <div>
+                    <span className="font-medium text-gray-700">Ingredients Found:</span>
+                    <span className="ml-2 text-gray-600">{scrapingLogs.ingredients?.length || 0}</span>
+                  </div>
+                  <div>
+                    <span className="font-medium text-gray-700">Steps Found:</span>
+                    <span className="ml-2 text-gray-600">{scrapingLogs.steps?.length || 0}</span>
+                  </div>
+                  {scrapingLogs.servings && (
+                    <div>
+                      <span className="font-medium text-gray-700">Servings:</span>
+                      <span className="ml-2 text-gray-600">{scrapingLogs.servings}</span>
+                    </div>
+                  )}
+                  {scrapingLogs.warnings && scrapingLogs.warnings.length > 0 && (
+                    <div>
+                      <span className="font-medium text-gray-700">Warnings:</span>
+                      <ul className="ml-4 mt-1 list-disc text-gray-600">
+                        {scrapingLogs.warnings.map((warning: string, idx: number) => (
+                          <li key={idx}>{warning}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                  {scrapingLogs.errors && scrapingLogs.errors.length > 0 && (
+                    <div>
+                      <span className="font-medium text-red-700">Errors:</span>
+                      <ul className="ml-4 mt-1 list-disc text-red-600">
+                        {scrapingLogs.errors.map((error: string, idx: number) => (
+                          <li key={idx}>{error}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                  {scrapingLogs.raw_text && (
+                    <details className="mt-2">
+                      <summary className="font-medium text-gray-700 cursor-pointer hover:text-gray-900">
+                        Raw Text (click to expand)
+                      </summary>
+                      <pre className="mt-2 p-2 bg-white border border-gray-200 rounded text-[10px] overflow-x-auto max-h-40 overflow-y-auto">
+                        {scrapingLogs.raw_text}
+                      </pre>
+                    </details>
+                  )}
+                </div>
+              </div>
+            )}
+
             <p className="text-sm text-primary/60">
               Paste a link to a recipe from any website. We support 376+ recipe sites with high-accuracy extraction.
             </p>
