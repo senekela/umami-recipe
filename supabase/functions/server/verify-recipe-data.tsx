@@ -45,7 +45,7 @@ interface VerificationResult {
   reasoning: string;
 }
 
-const GITHUB_MODELS_API_KEY = Deno.env.get('GITHUB_TOKEN');
+const GITHUB_MODELS_API_KEY = Deno.env.get('GITHUB_MODELS_TOKEN');
 const GITHUB_MODELS_ENDPOINT = 'https://models.inference.ai.azure.com/chat/completions';
 
 /**
@@ -55,9 +55,9 @@ export async function verifyRecipeData(recipeData: RecipeData): Promise<Verifica
   const startTime = Date.now();
   
   if (!GITHUB_MODELS_API_KEY) {
-    console.warn('⚠️ GitHub Models API key not configured (GITHUB_TOKEN missing)');
+    console.warn('⚠️ GitHub Models API key not configured (GITHUB_MODELS_TOKEN missing)');
     console.warn('⚠️ Falling back to client-side filtering only');
-    console.warn('⚠️ To enable AI cleaning: supabase secrets set GITHUB_TOKEN=your_token');
+    console.warn('⚠️ To enable AI cleaning: supabase secrets set GITHUB_MODELS_TOKEN=your_token');
     return createFallbackVerification(recipeData);
   }
 
