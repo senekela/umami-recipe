@@ -110,7 +110,22 @@ export function DraftEditor() {
     updateField('import_reviewed_at', reviewedAt)
     await save()
 
-    const slug = slugify(draft.title, { lower: true, strict: true })
+    // Generate base slug
+    let slug = slugify(draft.title, { lower: true, strict: true })
+    
+    // Check if slug already exists
+    const { data: existingRecipes } = await supabase
+      .from('recipes')
+      .select('slug')
+      .eq('slug', slug)
+      .neq('id', draft.id)
+    
+    // If slug exists, append a unique suffix
+    if (existingRecipes && existingRecipes.length > 0) {
+      const timestamp = Date.now().toString(36)
+      slug = `${slug}-${timestamp}`
+    }
+    
     const { error } = await supabase
       .from('recipes')
       .update({
@@ -121,9 +136,13 @@ export function DraftEditor() {
       })
       .eq('id', draft.id)
 
-    if (!error) {
-      navigate(`/recipes/${slug}`)
+    if (error) {
+      console.error('Failed to publish recipe:', error)
+      alert(`Failed to publish recipe: ${error.message}`)
+      return
     }
+    
+    navigate(`/recipes/${slug}`)
   }
 
   const handleDelete = async () => {
