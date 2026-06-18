@@ -145,7 +145,7 @@ export async function handleOcrImport(storagePath: string, supabaseUrl: string, 
 }
 
 export async function handleRecipeParse(rawText: string, githubToken: string): Promise<RecipeParseResult> {
-  const model = 'openai/gpt-4.1-nano';
+  const model = 'gpt-4o-mini';
 
   const systemPrompt = [
     'Tu es un expert en extraction de recettes spécialisé dans l’analyse de texte issu de l’OCR.',

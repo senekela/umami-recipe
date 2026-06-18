@@ -67,7 +67,7 @@ export async function verifyRecipeData(recipeData: RecipeData): Promise<Verifica
   try {
     const prompt = buildVerificationPrompt(recipeData);
     
-    const model = "openai/gpt-4.1-nano";
+    const model = "gpt-4o-mini";
     console.log(`🔄 Calling GitHub Models API (${model})...`);
     const response = await fetch(GITHUB_MODELS_ENDPOINT, {
       method: 'POST',
