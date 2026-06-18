@@ -4,7 +4,6 @@ import { motion, AnimatePresence } from 'framer-motion'
 import {
   Search,
   Users,
-  Star,
   Bookmark,
   Sparkles,
   X,
@@ -195,7 +194,6 @@ export function Home() {
 
                   <div className="mt-4 sm:mt-8 flex flex-wrap gap-2">
                     <Stat icon={Users} value={featuredRecipe.servings || 4} label="portions" />
-                    {featuredRecipe.tags.length > 0 && <Stat icon={Star} value="4.8" label="rating" />}
                   </div>
                 </div>
 
@@ -408,7 +406,6 @@ export function Home() {
                               {recipe.tags[0]}
                             </span>
                           )}
-                          <span className={`rounded-full px-2 sm:px-2.5 py-0.5 sm:py-1 ${selectedRecipe?.id === recipe.id ? 'bg-white/10' : 'bg-black/5'} whitespace-nowrap`}>★ 4.8</span>
                         </div>
                       </div>
                     </div>
