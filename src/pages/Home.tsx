@@ -3,7 +3,6 @@ import { useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   Search,
-  SlidersHorizontal,
   Users,
   Star,
   Bookmark,
@@ -243,9 +242,6 @@ export function Home() {
                       <X className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                     </button>
                   ) : null}
-                  <button className="grid h-8 w-8 sm:h-10 sm:w-10 place-items-center rounded-full bg-stone-950 text-white flex-shrink-0" aria-label="Open filters">
-                    <SlidersHorizontal className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
-                  </button>
                 </div>
 
                 {/* Search Suggestions Dropdown */}
