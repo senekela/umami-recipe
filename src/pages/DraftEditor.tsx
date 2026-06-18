@@ -254,7 +254,7 @@ export function DraftEditor() {
         </div>
 
         <div className="space-y-6">
-          {draft.import_method === 'url' && draft.raw_text && (
+          {draft.import_method === 'url' && (
             <div className="rounded-lg border border-gray-200 bg-white p-4">
               <div className="flex items-center justify-between mb-3">
                 <h2 className="font-medium text-primary">Scraping Results</h2>
@@ -297,26 +297,45 @@ export function DraftEditor() {
                       <span className="ml-2 text-gray-600">{draft.servings}</span>
                     </div>
                   )}
+                  
+                  {/* Scraping Process Logs */}
+                  {draft.import_errors && draft.import_errors.length > 0 && (
+                    <div className="mt-4">
+                      <details open>
+                        <summary className="font-medium text-gray-700 cursor-pointer hover:text-gray-900 mb-2">
+                          Scraping Process Log ({draft.import_errors.length} entries)
+                        </summary>
+                        <div className="mt-2 p-3 bg-gray-50 border border-gray-200 rounded text-[11px] font-mono max-h-60 overflow-y-auto">
+                          {draft.import_errors.map((log: string, idx: number) => (
+                            <div
+                              key={idx}
+                              className={`py-0.5 ${
+                                log.includes('✅') ? 'text-green-700' :
+                                log.includes('❌') ? 'text-red-600' :
+                                log.includes('⚠️') ? 'text-amber-600' :
+                                log.includes('🔍') ? 'text-blue-600 font-semibold' :
+                                'text-gray-600'
+                              }`}
+                            >
+                              {log}
+                            </div>
+                          ))}
+                        </div>
+                      </details>
+                    </div>
+                  )}
+                  
                   {draft.import_warnings && draft.import_warnings.length > 0 && (
                     <div>
-                      <span className="font-medium text-gray-700">Warnings:</span>
-                      <ul className="ml-4 mt-1 list-disc text-gray-600">
+                      <span className="font-medium text-amber-700">Warnings:</span>
+                      <ul className="ml-4 mt-1 list-disc text-amber-600">
                         {draft.import_warnings.map((warning: string, idx: number) => (
                           <li key={idx}>{warning}</li>
                         ))}
                       </ul>
                     </div>
                   )}
-                  {draft.import_errors && draft.import_errors.length > 0 && (
-                    <div>
-                      <span className="font-medium text-red-700">Errors:</span>
-                      <ul className="ml-4 mt-1 list-disc text-red-600">
-                        {draft.import_errors.map((error: string, idx: number) => (
-                          <li key={idx}>{error}</li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
+                  
                   {draft.raw_text && (
                     <details className="mt-2">
                       <summary className="font-medium text-gray-700 cursor-pointer hover:text-gray-900">

@@ -36,28 +36,42 @@ export async function handleUrlImport(url: string) {
   try {
     let scrapedData: RecipeData | null = null;
     let scrapingMethod = '';
+    const logs: string[] = [];
 
     // Try Python scraper first (highest confidence for supported sites)
+    logs.push('🔍 Attempting Python scraper (recipe-scrapers library)...');
     const pythonResult = await tryPythonScraper(url);
     if (pythonResult && pythonResult.confidence >= 0.9) {
+      logs.push('✅ Python scraper succeeded with high confidence');
       console.log('✅ Python scraper succeeded with high confidence');
       scrapedData = pythonResult;
       scrapingMethod = 'python-scraper';
+    } else if (pythonResult) {
+      logs.push(`⚠️ Python scraper returned low confidence (${Math.round(pythonResult.confidence * 100)}%)`);
+    } else {
+      logs.push('❌ Python scraper failed or site not supported');
     }
 
     // Try Firecrawl for JavaScript-heavy sites or when Python fails
     if (!scrapedData) {
+      logs.push('🔍 Attempting Firecrawl browser-based scraping...');
       console.log('⚠️ Trying Firecrawl browser-based scraping');
       const firecrawlResult = await tryFirecrawl(url);
       if (firecrawlResult && firecrawlResult.confidence >= 0.7) {
+        logs.push('✅ Firecrawl succeeded');
         console.log('✅ Firecrawl succeeded');
         scrapedData = firecrawlResult;
         scrapingMethod = 'firecrawl';
+      } else if (firecrawlResult) {
+        logs.push(`⚠️ Firecrawl returned low confidence (${Math.round(firecrawlResult.confidence * 100)}%)`);
+      } else {
+        logs.push('❌ Firecrawl failed');
       }
     }
 
     // Fallback to TypeScript scraper
     if (!scrapedData) {
+      logs.push('🔍 Falling back to TypeScript scraper...');
       console.log('⚠️ Falling back to TypeScript scraper');
       scrapingMethod = 'typescript-scraper';
       
@@ -93,48 +107,67 @@ export async function handleUrlImport(url: string) {
       };
 
       // Method 1: Try JSON-LD structured data (most reliable)
+      logs.push('  → Trying JSON-LD structured data...');
       const jsonLdData = extractJsonLd($);
       if (jsonLdData) {
+        logs.push('  ✅ Found JSON-LD data (confidence: 95%)');
         result = { ...result, ...jsonLdData };
         result.confidence = 0.95;
         scrapedData = result;
+      } else {
+        logs.push('  ❌ No JSON-LD data found');
       }
 
       // Method 2: Try Microdata/RDFa
       if (!scrapedData) {
+        logs.push('  → Trying Microdata/RDFa...');
         const microdataResult = extractMicrodata($);
         if (microdataResult) {
+          logs.push('  ✅ Found Microdata (confidence: 85%)');
           result = { ...result, ...microdataResult };
           result.confidence = 0.85;
           scrapedData = result;
+        } else {
+          logs.push('  ❌ No Microdata found');
         }
       }
 
       // Method 3: Try site-specific extractors
       if (!scrapedData) {
         const hostname = new URL(url).hostname;
+        logs.push(`  → Trying site-specific extractor for ${hostname}...`);
         if (hostname.includes('journaldesfemmes.fr')) {
           const jdfResult = extractJournalDesFemmes($);
           if (jdfResult) {
+            logs.push('  ✅ Site-specific extractor succeeded (confidence: 75%)');
             result = { ...result, ...jdfResult };
             result.confidence = 0.75;
             scrapedData = result;
+          } else {
+            logs.push('  ❌ Site-specific extractor failed');
           }
+        } else {
+          logs.push('  ⚠️ No site-specific extractor available');
         }
       }
 
       // Method 4: Try common HTML patterns (fallback)
       if (!scrapedData) {
+        logs.push('  → Trying common HTML patterns...');
         const htmlPatternResult = extractFromHtmlPatterns($);
         if (htmlPatternResult) {
+          logs.push('  ✅ Found data via HTML patterns (confidence: 60%)');
           result = { ...result, ...htmlPatternResult };
           result.confidence = 0.6;
           scrapedData = result;
+        } else {
+          logs.push('  ❌ No HTML patterns matched');
         }
       }
 
       // Method 5: Basic metadata extraction
       if (!scrapedData) {
+        logs.push('  → Extracting basic metadata only...');
         result.title = $('title').text().split('|')[0].split('-')[0].trim() || 'Untitled Recipe';
         result.description = $('meta[name="description"]').attr('content') ||
                             $('meta[property="og:description"]').attr('content') || null;
@@ -142,6 +175,7 @@ export async function handleUrlImport(url: string) {
                           $('meta[name="twitter:image"]').attr('content') || null;
         result.confidence = 0.3;
         result.errors.push('No structured recipe data found. Please fill in the fields manually.');
+        logs.push('  ⚠️ Only basic metadata extracted (confidence: 30%)');
         scrapedData = result;
       }
     }
@@ -155,8 +189,16 @@ export async function handleUrlImport(url: string) {
     }
 
     // Step: Verify and improve the scraped data with GitHub Models
+    logs.push(`\n🔍 Verifying recipe data (scraped via ${scrapingMethod})...`);
     console.log(`🔍 Verifying recipe data (scraped via ${scrapingMethod})...`);
     const verification = await verifyRecipeData(scrapedData);
+    
+    logs.push(`✓ Verification complete: ${verification.verified ? 'PASSED' : 'NEEDS REVIEW'}`);
+    logs.push(`  Confidence: ${Math.round(verification.confidence * 100)}%`);
+    logs.push(`  Issues found: ${verification.issues.length}`);
+    if (verification.reasoning) {
+      logs.push(`  Reasoning: ${verification.reasoning}`);
+    }
     
     console.log(`✓ Verification complete: ${verification.verified ? 'PASSED' : 'NEEDS REVIEW'}`);
     console.log(`  Confidence: ${Math.round(verification.confidence * 100)}%`);
@@ -165,6 +207,9 @@ export async function handleUrlImport(url: string) {
 
     // Apply verification improvements
     const verifiedData = applyVerificationImprovements(scrapedData, verification);
+    
+    // Add scraping logs to the warnings array
+    verifiedData.errors = [...(verifiedData.errors || []), ...logs];
 
     return { data: verifiedData, error: null };
   } catch (err) {
