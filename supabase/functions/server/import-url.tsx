@@ -56,16 +56,21 @@ export async function handleUrlImport(url: string) {
     if (!scrapedData) {
       logs.push('🔍 Attempting Firecrawl browser-based scraping...');
       console.log('⚠️ Trying Firecrawl browser-based scraping');
-      const firecrawlResult = await tryFirecrawl(url);
-      if (firecrawlResult && firecrawlResult.confidence >= 0.7) {
-        logs.push('✅ Firecrawl succeeded');
-        console.log('✅ Firecrawl succeeded');
-        scrapedData = firecrawlResult;
-        scrapingMethod = 'firecrawl';
-      } else if (firecrawlResult) {
-        logs.push(`⚠️ Firecrawl returned low confidence (${Math.round(firecrawlResult.confidence * 100)}%)`);
-      } else {
-        logs.push('❌ Firecrawl failed');
+      try {
+        const firecrawlResult = await tryFirecrawl(url);
+        if (firecrawlResult && firecrawlResult.confidence >= 0.7) {
+          logs.push('✅ Firecrawl succeeded');
+          console.log('✅ Firecrawl succeeded');
+          scrapedData = firecrawlResult;
+          scrapingMethod = 'firecrawl';
+        } else if (firecrawlResult) {
+          logs.push(`⚠️ Firecrawl returned low confidence (${Math.round(firecrawlResult.confidence * 100)}%)`);
+        } else {
+          logs.push('❌ Firecrawl failed or timed out (page may be too slow to load)');
+        }
+      } catch (firecrawlError) {
+        logs.push(`❌ Firecrawl error: ${firecrawlError instanceof Error ? firecrawlError.message : 'Unknown error'}`);
+        console.error('Firecrawl error:', firecrawlError);
       }
     }
 

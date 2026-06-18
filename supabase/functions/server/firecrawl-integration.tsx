@@ -64,6 +64,7 @@ export async function tryFirecrawl(url: string): Promise<RecipeData | null> {
         url,
         formats: ['markdown', 'html'],
         onlyMainContent: true,
+        timeout: 30000, // 30 second timeout
       }),
     });
     
@@ -71,9 +72,19 @@ export async function tryFirecrawl(url: string): Promise<RecipeData | null> {
       const errorText = await response.text();
       console.error('Firecrawl API error:', response.status, errorText);
       
-      // If it's a rate limit or auth issue, return null to try other methods
-      if (response.status === 429 || response.status === 401) {
-        console.log('⚠️ Firecrawl rate limit or auth issue, falling back');
+      // Handle specific error cases
+      if (response.status === 408) {
+        console.log('⚠️ Firecrawl timeout - page took too long to load, falling back to other methods');
+        return null;
+      }
+      
+      if (response.status === 429) {
+        console.log('⚠️ Firecrawl rate limit reached, falling back to other methods');
+        return null;
+      }
+      
+      if (response.status === 401 || response.status === 403) {
+        console.log('⚠️ Firecrawl authentication issue, falling back to other methods');
         return null;
       }
       
