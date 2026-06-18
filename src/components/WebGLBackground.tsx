@@ -13,7 +13,6 @@ export function WebGLBackground() {
       return
     }
 
-    // Resize handling
     const resize = () => {
       canvas.width = window.innerWidth
       canvas.height = window.innerHeight
@@ -22,7 +21,6 @@ export function WebGLBackground() {
     resize()
     window.addEventListener('resize', resize)
 
-    // Vertex shader
     const vertexShaderSource = `
       attribute vec2 a_position;
       void main() {
@@ -31,14 +29,12 @@ export function WebGLBackground() {
       }
     `
 
-    // Fragment shader - dot matrix with warm orange glow
     const fragmentShaderSource = `
       precision mediump float;
       uniform float u_time;
       uniform vec2 u_resolution;
       uniform vec2 u_mouse;
       
-      // Noise function
       float noise(vec2 p) {
         return fract(sin(dot(p, vec2(12.9898, 78.233))) * 43758.5453);
       }
@@ -47,38 +43,30 @@ export function WebGLBackground() {
         vec2 uv = gl_FragCoord.xy / u_resolution;
         vec2 center = vec2(0.5, 0.5);
         
-        // Create dot matrix pattern
         vec2 grid = fract(uv * 40.0);
         float dot = smoothstep(0.5, 0.3, length(grid - 0.5));
         
-        // Breathing pulse animation
         float pulse = sin(u_time * 0.5) * 0.5 + 0.5;
         
-        // Distance from center for depth fade
         float dist = length(uv - center);
         float fade = 1.0 - smoothstep(0.0, 0.8, dist);
         
-        // Mouse interaction - subtle drift
         vec2 mouseUV = u_mouse / u_resolution;
         float mouseDist = length(uv - mouseUV);
         float mouseEffect = smoothstep(0.3, 0.0, mouseDist) * 0.3;
         
-        // Combine effects
         float intensity = dot * fade * (0.6 + pulse * 0.4 + mouseEffect);
         
-        // Terracotta color (#d97757 with soft glow)
-        vec3 color = vec3(0.851, 0.467, 0.341); // #d97757
+        vec3 color = vec3(0.851, 0.467, 0.341);
         color *= intensity;
         
-        // Add subtle depth with darker background
-        vec3 bgColor = vec3(0.078, 0.078, 0.075); // #141413
+        vec3 bgColor = vec3(0.078, 0.078, 0.075);
         color = mix(bgColor, color, intensity);
         
         gl_FragColor = vec4(color, intensity * 0.4);
       }
     `
 
-    // Compile shader
     function compileShader(source: string, type: number): WebGLShader | null {
       if (!gl) return null
       const shader = gl.createShader(type)
@@ -98,7 +86,6 @@ export function WebGLBackground() {
     
     if (!vertexShader || !fragmentShader) return
 
-    // Create program
     const program = gl.createProgram()
     if (!program) return
     
@@ -113,7 +100,6 @@ export function WebGLBackground() {
 
     gl.useProgram(program)
 
-    // Set up full-screen quad
     const positions = new Float32Array([
       -1, -1,
        1, -1,
@@ -129,29 +115,26 @@ export function WebGLBackground() {
     gl.enableVertexAttribArray(positionLocation)
     gl.vertexAttribPointer(positionLocation, 2, gl.FLOAT, false, 0, 0)
 
-    // Get uniform locations
     const timeLocation = gl.getUniformLocation(program, 'u_time')
     const resolutionLocation = gl.getUniformLocation(program, 'u_resolution')
     const mouseLocation = gl.getUniformLocation(program, 'u_mouse')
 
-    // Mouse tracking
     let mouseX = window.innerWidth / 2
     let mouseY = window.innerHeight / 2
 
     const handleMouseMove = (e: MouseEvent) => {
       mouseX = e.clientX
-      mouseY = window.innerHeight - e.clientY // Flip Y coordinate
+      mouseY = window.innerHeight - e.clientY
     }
     window.addEventListener('mousemove', handleMouseMove)
 
-    // Animation loop
     let animationId: number
     const startTime = Date.now()
 
     const render = () => {
       const time = (Date.now() - startTime) / 1000
 
-      gl.clearColor(0.078, 0.078, 0.075, 1.0) // #141413
+      gl.clearColor(0.078, 0.078, 0.075, 1.0)
       gl.clear(gl.COLOR_BUFFER_BIT)
 
       gl.uniform1f(timeLocation, time)
@@ -164,7 +147,6 @@ export function WebGLBackground() {
     }
     render()
 
-    // Cleanup
     return () => {
       window.removeEventListener('resize', resize)
       window.removeEventListener('mousemove', handleMouseMove)
@@ -185,5 +167,3 @@ export function WebGLBackground() {
     />
   )
 }
-
-// Made with Bob

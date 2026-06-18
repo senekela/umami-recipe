@@ -70,7 +70,6 @@ export function RecipeCard({ recipe }: { recipe: Recipe }) {
             <button
               onClick={(e) => {
                 e.preventDefault()
-                // Handle bookmark
               }}
               className="grid h-8 w-8 sm:h-9 sm:w-9 shrink-0 place-items-center rounded-full border border-black/10 bg-white/55 backdrop-blur transition hover:bg-white hover:border-stone-950"
               aria-label="Save recipe"
@@ -151,5 +150,3 @@ export function RecipeCard({ recipe }: { recipe: Recipe }) {
     </Link>
   )
 }
-
-// Made with Bob

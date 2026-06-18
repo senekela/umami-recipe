@@ -58,7 +58,6 @@ export function MyRecipes() {
     if (!confirm(confirmMessage)) return
 
     try {
-      // Delete the recipe image from storage if it exists
       if (recipe.image_url) {
         const imagePath = recipe.image_url.split('/').slice(-2).join('/')
         await supabase.storage
@@ -66,7 +65,6 @@ export function MyRecipes() {
           .remove([imagePath])
       }
 
-      // Delete the recipe from database
       const { error } = await supabase
         .from('recipes')
         .delete()
@@ -74,7 +72,6 @@ export function MyRecipes() {
 
       if (error) throw error
       
-      // Reload recipes after deletion
       await loadRecipes()
     } catch (err) {
       console.error('Failed to delete recipe:', err)
@@ -303,5 +300,3 @@ export function MyRecipes() {
     </Layout>
   )
 }
-
-// Made with Bob

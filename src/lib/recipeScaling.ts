@@ -1,8 +1,3 @@
-/**
- * Recipe Scaling Utilities
- * Based on RECIPE_SCALING_SPECIFICATION.md
- */
-
 import type { Ingredient } from './types/recipe'
 
 export type ScalingMode = 'servings' | 'ingredient'
@@ -25,39 +20,26 @@ export interface ScalingState {
   scalingFactor: number
 }
 
-/**
- * Round amount according to specification rules
- */
 export function roundAmount(amount: number, unit: string): number {
   if (unit !== 'g') {
-    // For non-gram units, round to 1 decimal or nearest integer
     if (unit === 'pièce' || unit === 'pièces' || unit === 'unité' || unit === 'unités') {
       return Math.round(amount)
     }
     return Math.round(amount * 10) / 10
   }
 
-  // Rules for grams
   if (amount < 10) {
-    // Round to 1 decimal
     return Math.round(amount * 10) / 10
   } else if (amount < 100) {
-    // Round to nearest 0.5g
     return Math.round(amount * 2) / 2
   } else {
-    // Round to nearest gram
     return Math.round(amount)
   }
 }
 
-/**
- * Parse amount string to number
- */
 export function parseAmount(amountStr: string): number | null {
-  // Remove spaces and replace comma with dot
   const cleaned = amountStr.trim().replace(',', '.')
   
-  // Try to extract first number
   const match = cleaned.match(/^(\d+\.?\d*)/)
   if (match) {
     const num = parseFloat(match[1])
@@ -67,29 +49,20 @@ export function parseAmount(amountStr: string): number | null {
   return null
 }
 
-/**
- * Format amount for display
- */
 export function formatAmount(amount: number): string {
-  // Remove trailing zeros and unnecessary decimals
   if (amount === Math.floor(amount)) {
     return amount.toString()
   }
   return amount.toFixed(amount < 10 ? 1 : (amount < 100 ? 1 : 0)).replace(/\.0$/, '')
 }
 
-/**
- * Check if ingredient can be used as anchor
- */
 export function canBeAnchor(ingredient: Ingredient): boolean {
   const amount = parseAmount(ingredient.amount)
   if (amount === null || amount <= 0) return false
   
-  // Allow precise measurement units as anchors (grams and liquids)
   const preciseUnits = ['g', 'ml', 'cl', 'L', 'l']
   if (!preciseUnits.includes(ingredient.unit)) return false
   
-  // Exclude vague quantities
   const vague = ['pincée', 'peu', 'goût', 'selon', 'environ']
   const lowerAmount = ingredient.amount.toLowerCase()
   if (vague.some(word => lowerAmount.includes(word))) return false
@@ -97,9 +70,6 @@ export function canBeAnchor(ingredient: Ingredient): boolean {
   return true
 }
 
-/**
- * Calculate scaling factor based on mode
- */
 export function calculateScalingFactor(
   mode: ScalingMode,
   originalServings: number | null,
@@ -113,7 +83,6 @@ export function calculateScalingFactor(
     return targetServings / originalServings
   }
   
-  // Mode: ingredient
   if (anchorIndex === null || anchorTargetAmount === null) return 1
   
   const anchorIngredient = ingredients[anchorIndex]
@@ -125,9 +94,6 @@ export function calculateScalingFactor(
   return anchorTargetAmount / originalAmount
 }
 
-/**
- * Scale ingredients based on current state
- */
 export function scaleIngredients(
   ingredients: Ingredient[],
   scalingFactor: number,
@@ -139,7 +105,6 @@ export function scaleIngredients(
     const isAnchor = index === anchorIndex
     
     if (originalAmount === null || originalAmount <= 0) {
-      // Non-scalable ingredient
       return {
         ...ingredient,
         originalAmount: 0,
@@ -166,9 +131,6 @@ export function scaleIngredients(
   })
 }
 
-/**
- * Calculate estimated servings when using ingredient mode
- */
 export function calculateEstimatedServings(
   originalServings: number | null,
   scalingFactor: number
@@ -177,9 +139,6 @@ export function calculateEstimatedServings(
   return originalServings * scalingFactor
 }
 
-/**
- * Validate target servings input
- */
 export function validateServings(value: number): { valid: boolean; error?: string } {
   if (value <= 0) {
     return { valid: false, error: 'Le nombre de portions doit être supérieur à 0' }
@@ -190,9 +149,6 @@ export function validateServings(value: number): { valid: boolean; error?: strin
   return { valid: true }
 }
 
-/**
- * Validate anchor amount input
- */
 export function validateAnchorAmount(value: number): { valid: boolean; error?: string } {
   if (value <= 0) {
     return { valid: false, error: 'La quantité doit être supérieure à 0 g' }
@@ -202,5 +158,3 @@ export function validateAnchorAmount(value: number): { valid: boolean; error?: s
   }
   return { valid: true }
 }
-
-// Made with Bob

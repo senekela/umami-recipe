@@ -20,7 +20,6 @@ type ImportStage =
   | 'parsing'
   | 'saving'
 
-// Zod schema for OpenRouter response validation
 const OpenRouterRecipeSchema = z.object({
   title: z.string().nullable(),
   description: z.string().nullable(),
@@ -53,7 +52,6 @@ export function Import() {
 
   const [tab, setTab] = useState<'url' | 'ocr'>('url')
 
-  // Set initial tab from URL parameter
   useEffect(() => {
     const tabParam = searchParams.get('tab')
     if (tabParam === 'ocr' || tabParam === 'url') {
@@ -107,7 +105,6 @@ export function Import() {
       const { data, error: edgeError } = await callEdgeFunction<DraftSchema>('import-url', { url })
 
       if (edgeError) {
-        // Provide specific error messages based on error type
         let errorMessage = edgeError
         if (edgeError.includes('network') || edgeError.includes('fetch')) {
           errorMessage = 'Network error. Please check your connection and try again.'
@@ -122,7 +119,6 @@ export function Import() {
       }
 
       if (data) {
-        // Store scraping logs for debugging
         setScrapingLogs(data)
         if (data.confidence && data.confidence >= 0.9) {
           setSuccessMessage('✨ Recipe imported with high confidence!')
@@ -189,7 +185,6 @@ export function Import() {
     setPhotoProgress(10)
 
     try {
-      // Step 1: Preprocess image
       const processed = await preprocessImage(file)
       const objectUrl = URL.createObjectURL(processed.blob)
 
@@ -203,7 +198,6 @@ export function Import() {
       setPreviewUrl(objectUrl)
       setPhotoProgress(15)
 
-      // Step 2: Perform OCR
       setPhotoStage('ocr')
       const ocrResult = await extractTextFromImage(processed.blob, (progress) => {
         setPhotoProgress(15 + progress.progress * 0.45) // 15-60%
@@ -216,10 +210,8 @@ export function Import() {
       setPhotoProgress(65)
       setPhotoStage('parsing')
 
-      // Step 3: Parse basic structure from OCR text
       const basicParsed = parseRecipeText(ocrResult.text)
 
-      // Create base draft with OCR results
       const warnings: string[] = []
       const flags: ImportFlag[] = []
       const errors: string[] = []
@@ -277,7 +269,6 @@ export function Import() {
 
       setPhotoProgress(70)
 
-      // Step 4: Server-side AI parsing for better structure
       const parsedDraft = await parseRecipeWithGitHubModels(ocrResult.text)
       const mergedDraft = mergeDraftData(baseDraft, parsedDraft)
 
@@ -287,7 +278,6 @@ export function Import() {
       setPhotoStage('saving')
       setPhotoProgress(88)
 
-      // Step 5: Save to database
       const title = mergedDraft.title || 'Untitled Recipe'
       const baseSlug = title
         .toLowerCase()
@@ -326,7 +316,6 @@ export function Import() {
 
       setPhotoProgress(100)
       
-      // Provide context-aware success message
       if (mergedDraft.warnings.length > 0 || mergedDraft.flags.length > 0) {
         setSuccessMessage('Photo imported with warnings. Please review and correct flagged fields before publishing.')
       } else {
@@ -340,7 +329,6 @@ export function Import() {
       setPhotoStage('idle')
       setPhotoProgress(0)
       
-      // Provide specific error messages based on error type
       let errorMessage = 'Failed to process photo'
       if (err instanceof Error) {
         if (err.message.includes('HEIC') || err.message.includes('heic2any')) {
@@ -626,7 +614,6 @@ export function Import() {
 }
 
 async function preprocessImage(file: File): Promise<{ blob: Blob; fileName: string }> {
-  // Check for HEIC/HEIF files and reject with helpful message
   const isHeic = file.type === 'image/heic' ||
                  file.type === 'image/heif' ||
                  file.name.toLowerCase().endsWith('.heic') ||
@@ -636,7 +623,6 @@ async function preprocessImage(file: File): Promise<{ blob: Blob; fileName: stri
     throw new Error('HEIC format is not supported.\n\n📱 To change your iPhone camera settings:\n\n1. Open Settings app\n2. Scroll down and tap Camera\n3. Tap Formats\n4. Select "Most Compatible"\n\nThis will save all future photos as JPG instead of HEIC.\n\nFor this photo, please export it as JPG from the Photos app first.')
   }
 
-  // Step 1: Load and preprocess image
   const image = await loadImage(file)
   const maxWidth = 1600
   const scale = Math.min(1, maxWidth / image.width)
@@ -656,7 +642,6 @@ async function preprocessImage(file: File): Promise<{ blob: Blob; fileName: stri
   const imageData = context.getImageData(0, 0, width, height)
   const { data } = imageData
 
-  // Enhance contrast for better OCR
   let min = 255
   let max = 0
 
@@ -678,7 +663,6 @@ async function preprocessImage(file: File): Promise<{ blob: Blob; fileName: stri
 
   context.putImageData(imageData, 0, 0)
 
-  // Step 3: Compress to ≤500 KB with iterative quality reduction
   const qualities = [0.85, 0.7, 0.5]
   let finalBlob: Blob | null = null
 
@@ -703,16 +687,14 @@ async function preprocessImage(file: File): Promise<{ blob: Blob; fileName: stri
     throw new Error('Unable to compress image to required size. Try a smaller or simpler image.')
   }
 
-  // Sanitize filename: remove ALL special characters, spaces, and accents
   const sanitizedName = file.name
-    .replace(/\.[^.]+$/i, '') // Remove extension
-    .normalize('NFD') // Decompose accented characters
-    .replace(/[\u0300-\u036f]/g, '') // Remove diacritics
-    .replace(/[^a-zA-Z0-9]/g, '') // Remove ALL non-alphanumeric (including spaces, apostrophes, etc)
+    .replace(/\.[^.]+$/i, '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-zA-Z0-9]/g, '')
     .toLowerCase()
-    .substring(0, 50) // Limit length
+    .substring(0, 50)
   
-  // Use timestamp-based name if sanitization results in empty string
   const fileName = (sanitizedName || `recipe${Date.now()}`) + '.jpg'
   return { blob: finalBlob, fileName }
 }

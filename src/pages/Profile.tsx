@@ -68,7 +68,6 @@ export function Profile() {
         throw error
       }
       
-      // Update local state immediately
       if (data) {
         setProfile(data)
       }
@@ -87,13 +86,11 @@ export function Profile() {
     const file = e.target.files?.[0]
     if (!file || !user) return
 
-    // Validate file type
     if (!file.type.startsWith('image/')) {
       setError('Please upload an image file')
       return
     }
 
-    // Validate file size (max 2MB)
     if (file.size > 2 * 1024 * 1024) {
       setError('Image must be less than 2MB')
       return
@@ -104,14 +101,12 @@ export function Profile() {
     setSuccess(null)
 
     try {
-      // Delete old avatar if exists
       if (profile?.avatar_path) {
         await supabase.storage
           .from('avatars')
           .remove([profile.avatar_path])
       }
 
-      // Upload new avatar
       const fileExt = file.name.split('.').pop()
       const fileName = `${Date.now()}.${fileExt}`
       const filePath = `${user.id}/${fileName}`
@@ -122,12 +117,10 @@ export function Profile() {
 
       if (uploadError) throw uploadError
 
-      // Get public URL
       const { data: { publicUrl } } = supabase.storage
         .from('avatars')
         .getPublicUrl(filePath)
 
-      // Update profile with new avatar URL
       const { data: updateData, error: updateError } = await supabase
         .from('profiles')
         .update({
@@ -143,7 +136,6 @@ export function Profile() {
         throw updateError
       }
       
-      // Update local state immediately
       if (updateData) {
         setProfile(updateData)
       }
@@ -287,5 +279,3 @@ export function Profile() {
     </Layout>
   )
 }
-
-// Made with Bob

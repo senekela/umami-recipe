@@ -26,12 +26,10 @@ export function RecipeScaling({ originalServings, ingredients, onScalingChange }
   const [servingsError, setServingsError] = useState<string>('')
   const [anchorError, setAnchorError] = useState<string>('')
 
-  // Get eligible anchor ingredients
   const eligibleAnchors = ingredients
     .map((ing, idx) => ({ ingredient: ing, index: idx }))
     .filter(({ ingredient }) => canBeAnchor(ingredient))
 
-  // Calculate scaling factor
   const scalingFactor = calculateScalingFactor(
     mode,
     originalServings,
@@ -41,12 +39,10 @@ export function RecipeScaling({ originalServings, ingredients, onScalingChange }
     anchorAmount ? parseFloat(anchorAmount) : null
   )
 
-  // Calculate estimated servings for ingredient mode
-  const estimatedServings = mode === 'ingredient' 
+  const estimatedServings = mode === 'ingredient'
     ? calculateEstimatedServings(originalServings, scalingFactor)
     : null
 
-  // Notify parent of changes
   useEffect(() => {
     onScalingChange({
       mode,
@@ -95,7 +91,6 @@ export function RecipeScaling({ originalServings, ingredients, onScalingChange }
       setAnchorAmount('')
       setAnchorError('')
     } else {
-      // Set first eligible ingredient as default anchor
       if (eligibleAnchors.length > 0 && anchorIndex === null) {
         setAnchorIndex(eligibleAnchors[0].index)
       }
@@ -277,5 +272,3 @@ export function RecipeScaling({ originalServings, ingredients, onScalingChange }
     </div>
   )
 }
-
-// Made with Bob

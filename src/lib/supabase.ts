@@ -3,7 +3,6 @@ import { projectId, publicAnonKey } from '/utils/supabase/info'
 
 const supabaseUrl = `https://${projectId}.supabase.co`
 
-// Use a global singleton to prevent multiple instances across hot reloads
 const GLOBAL_KEY = '__supabase_client__'
 
 function getSupabaseClient(): SupabaseClient {
@@ -20,7 +19,6 @@ function getSupabaseClient(): SupabaseClient {
     return (window as any)[GLOBAL_KEY]
   }
 
-  // Server-side fallback (shouldn't happen in this app)
   return createClient(supabaseUrl, publicAnonKey)
 }
 

@@ -9,14 +9,12 @@ export function useRecipes(filters?: { search?: string; tags?: string[] }) {
 
   useEffect(() => {
     loadRecipes()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filters?.search, filters?.tags?.join(',')])
 
   async function loadRecipes() {
     try {
       setLoading(true)
       
-      // Query recipes with owner profile join using the correct foreign key syntax
       let query = supabase
         .from('recipes')
         .select(`
@@ -44,7 +42,6 @@ export function useRecipes(filters?: { search?: string; tags?: string[] }) {
       
       console.log('Raw query result:', data)
       
-      // Map the profiles data to publisher format
       const recipesWithPublisher = data?.map(recipe => ({
         ...recipe,
         publisher: recipe.profiles ? { nickname: recipe.profiles.nickname } : null

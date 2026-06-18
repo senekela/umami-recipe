@@ -15,7 +15,6 @@ export function DraftEditor() {
   const [showShare, setShowShare] = useState(false)
   const [showLogs, setShowLogs] = useState(false)
 
-  // Validation state
   const validation = useMemo(() => {
     const hasTitle = !!draft?.title?.trim()
     const hasIngredients = (draft?.ingredients?.length || 0) > 0
@@ -110,17 +109,14 @@ export function DraftEditor() {
     updateField('import_reviewed_at', reviewedAt)
     await save()
 
-    // Generate base slug
     let slug = slugify(draft.title, { lower: true, strict: true })
     
-    // Check if slug already exists
     const { data: existingRecipes } = await supabase
       .from('recipes')
       .select('slug')
       .eq('slug', slug)
       .neq('id', draft.id)
     
-    // If slug exists, append a unique suffix
     if (existingRecipes && existingRecipes.length > 0) {
       const timestamp = Date.now().toString(36)
       slug = `${slug}-${timestamp}`
@@ -153,7 +149,6 @@ export function DraftEditor() {
     if (!confirm(confirmMessage)) return
 
     try {
-      // Delete the recipe image from storage if it exists
       if (draft.image_url) {
         const imagePath = draft.image_url.split('/').slice(-2).join('/')
         await supabase.storage
@@ -161,7 +156,6 @@ export function DraftEditor() {
           .remove([imagePath])
       }
 
-      // Delete the recipe from database
       const { error } = await supabase
         .from('recipes')
         .delete()

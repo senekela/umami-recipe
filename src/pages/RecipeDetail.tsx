@@ -69,7 +69,6 @@ export function RecipeDetail() {
     if (!confirm(confirmMessage)) return
 
     try {
-      // Delete the recipe image from storage if it exists
       if (recipe.image_url) {
         const imagePath = recipe.image_url.split('/').slice(-2).join('/')
         await supabase.storage
@@ -77,7 +76,6 @@ export function RecipeDetail() {
           .remove([imagePath])
       }
 
-      // Delete the recipe from database
       const { error } = await supabase
         .from('recipes')
         .delete()
@@ -127,7 +125,6 @@ export function RecipeDetail() {
 
   const isOwner = user?.id === recipe.owner_id
 
-  // Calculate scaled ingredients
   const scaledIngredients = scalingState
     ? scaleIngredients(
         recipe.ingredients,
@@ -321,5 +318,3 @@ export function RecipeDetail() {
     </Layout>
   )
 }
-
-// Made with Bob

@@ -11,13 +11,11 @@ export function useDraft(id: string) {
   useEffect(() => {
     loadDraft()
     
-    // Cleanup timer on unmount
     return () => {
       if (timer.current) {
         clearTimeout(timer.current)
       }
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id])
 
   async function loadDraft() {

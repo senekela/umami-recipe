@@ -51,7 +51,6 @@ export function useAuth() {
   }
 
   const sendMagicLink = async (email: string) => {
-    // Use the current origin for redirect to support both local dev and production
     const redirectTo = typeof window !== 'undefined'
       ? `${window.location.origin}/`
       : 'http://localhost:5173/'

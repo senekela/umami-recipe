@@ -19,18 +19,15 @@ export function Login() {
     setError(null)
 
     if (isAdminMode) {
-      // Admin login with password
       const { error } = await signInWithPassword(email, password)
       
       if (error) {
         setError(error.message)
         setLoading(false)
       } else {
-        // Redirect to the next page or default to /me
         navigate(searchParams.get('next') || '/me')
       }
     } else {
-      // Regular user login with magic link
       const { error } = await sendMagicLink(email)
 
       if (error) {

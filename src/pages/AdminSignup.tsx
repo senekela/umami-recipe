@@ -17,14 +17,12 @@ export function AdminSignup() {
     setLoading(true)
     setError(null)
 
-    // Validate passwords match
     if (password !== confirmPassword) {
       setError('Passwords do not match')
       setLoading(false)
       return
     }
 
-    // Validate password strength
     if (password.length < 8) {
       setError('Password must be at least 8 characters long')
       setLoading(false)
@@ -32,7 +30,6 @@ export function AdminSignup() {
     }
 
     try {
-      // Sign up the user
       const { data, error: signUpError } = await signUpWithPassword(email, password)
 
       if (signUpError) {
@@ -42,7 +39,6 @@ export function AdminSignup() {
       }
 
       if (data.user) {
-        // Set the user as admin in the profiles table
         const { error: updateError } = await supabase
           .from('profiles')
           .update({ is_admin: true })
@@ -55,7 +51,6 @@ export function AdminSignup() {
           return
         }
 
-        // Success - redirect to login or home
         navigate('/login')
       }
     } catch (err) {
@@ -152,5 +147,3 @@ export function AdminSignup() {
     </div>
   )
 }
-
-// Made with Bob

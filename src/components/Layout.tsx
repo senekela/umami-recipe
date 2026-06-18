@@ -182,5 +182,3 @@ export function Layout({
     </div>
   )
 }
-
-// Made with Bob

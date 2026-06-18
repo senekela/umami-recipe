@@ -61,10 +61,8 @@ export function Home() {
       const matchesQuery = !normalizedQuery || searchableText.includes(normalizedQuery)
       const matchesFilter = activeFilter === 'All' || recipe.tags.some(tag => tag.toLowerCase().includes(activeFilter.toLowerCase()))
       
-      // Quick filter logic
       let matchesQuickFilter = true
       if (quickFilterActive === 'fast') {
-        // Filter for recipes under 10 minutes prep (you can adjust this logic based on your data)
         matchesQuickFilter = recipe.tags.some(tag => tag.toLowerCase().includes('quick') || tag.toLowerCase().includes('fast'))
       } else if (quickFilterActive === 'vegetarian') {
         matchesQuickFilter = recipe.tags.some(tag => tag.toLowerCase().includes('vegetarian'))
@@ -116,10 +114,8 @@ export function Home() {
     setIsSearchFocused(false)
   }
 
-  // Use first recipe as featured or selected recipe
   const featuredRecipe = selectedRecipe || filteredRecipes[0]
 
-  // Generate gradient colors for recipes
   const getRecipeGradient = (index: number) => {
     const gradients = [
       'from-stone-900 via-neutral-700 to-amber-500',
