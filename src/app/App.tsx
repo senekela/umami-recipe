@@ -1,5 +1,6 @@
 import { BrowserRouter, Routes, Route, Navigate, useNavigate, useSearchParams } from 'react-router-dom'
 import { useEffect } from 'react'
+import { Toaster } from 'sonner'
 import { useAuth } from '../hooks/useAuth'
 import { AuthGuard } from '../components/AuthGuard'
 import { ErrorBoundary } from '../components/ErrorBoundary'
@@ -43,6 +44,32 @@ function AuthCallback() {
 export default function App() {
   return (
     <ErrorBoundary>
+      <Toaster
+        position="bottom-center"
+        toastOptions={{
+          style: {
+            background: '#1c1917',
+            color: '#fafaf9',
+            border: '1px solid rgba(255,255,255,0.08)',
+            borderRadius: '9999px',
+            fontFamily: 'inherit',
+            fontSize: '0.875rem',
+          },
+          actionButtonStyle: {
+            background: '#f6f1e8',
+            color: '#1c1917',
+            borderRadius: '9999px',
+            fontWeight: '600',
+            fontSize: '0.75rem',
+          },
+          cancelButtonStyle: {
+            background: 'transparent',
+            color: 'rgba(250,250,249,0.55)',
+            borderRadius: '9999px',
+            fontSize: '0.75rem',
+          },
+        }}
+      />
       <BrowserRouter>
         <Routes>
         <Route path="/" element={<Home />} />

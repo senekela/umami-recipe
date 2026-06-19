@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
+import { toast } from 'sonner'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../hooks/useAuth'
 import type { Recipe } from '../lib/types/recipe'
@@ -9,7 +10,7 @@ import { StepList } from '../components/StepList'
 import { Layout } from '../components/Layout'
 import { RecipeScaling } from '../components/RecipeScaling'
 import { Card, CardContent } from '../app/components/ui/card'
-import { Edit, Globe, EyeOff, Users, Clock, Star, Bookmark, Share2, ChevronDown, Trash2 } from 'lucide-react'
+import { Edit, Globe, EyeOff, Users, Bookmark, Share2, ChevronDown, Trash2 } from 'lucide-react'
 import { scaleIngredients, type ScalingState } from '../lib/recipeScaling'
 
 export function RecipeDetail() {
@@ -19,8 +20,10 @@ export function RecipeDetail() {
   const [recipe, setRecipe] = useState<Recipe | null>(null)
   const [loading, setLoading] = useState(true)
   const [scalingState, setScalingState] = useState<ScalingState | null>(null)
-  const [isSaved, setIsSaved] = useState(false)
   const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(false)
+  const [confirmDelete, setConfirmDelete] = useState(false)
+  const [confirmUnpublish, setConfirmUnpublish] = useState(false)
+  const [actionLoading, setActionLoading] = useState(false)
 
   useEffect(() => {
     loadRecipe()
@@ -47,46 +50,43 @@ export function RecipeDetail() {
   }
 
   async function unpublish() {
-    if (!recipe || !confirm('Unpublish this recipe?')) return
-
-    const { error } = await supabase
-      .from('recipes')
-      .update({ status: 'draft', published_at: null })
-      .eq('id', recipe.id)
-
-    if (!error) {
+    if (!recipe) return
+    setActionLoading(true)
+    try {
+      const { error } = await supabase
+        .from('recipes')
+        .update({ status: 'draft', published_at: null })
+        .eq('id', recipe.id)
+      if (error) throw error
+      toast.success('Recipe moved back to drafts')
       navigate('/me')
+    } catch (err) {
+      console.error('Failed to unpublish recipe:', err)
+      toast.error('Failed to unpublish. Please try again.')
+    } finally {
+      setActionLoading(false)
+      setConfirmUnpublish(false)
     }
   }
 
   async function deleteRecipe() {
     if (!recipe) return
-    
-    const confirmMessage = recipe.status === 'published'
-      ? 'Are you sure you want to delete this published recipe? This action cannot be undone.'
-      : 'Are you sure you want to delete this draft? This action cannot be undone.'
-    
-    if (!confirm(confirmMessage)) return
-
+    setActionLoading(true)
     try {
       if (recipe.image_url) {
         const imagePath = recipe.image_url.split('/').slice(-2).join('/')
-        await supabase.storage
-          .from('recipe-images')
-          .remove([imagePath])
+        await supabase.storage.from('recipe-images').remove([imagePath])
       }
-
-      const { error } = await supabase
-        .from('recipes')
-        .delete()
-        .eq('id', recipe.id)
-
+      const { error } = await supabase.from('recipes').delete().eq('id', recipe.id)
       if (error) throw error
-      
+      toast.success('Recipe deleted')
       navigate('/me')
     } catch (err) {
       console.error('Failed to delete recipe:', err)
-      alert('Failed to delete recipe. Please try again.')
+      toast.error('Failed to delete recipe. Please try again.')
+    } finally {
+      setActionLoading(false)
+      setConfirmDelete(false)
     }
   }
 
@@ -201,25 +201,16 @@ export function RecipeDetail() {
                 <div className="flex items-center gap-2 rounded-full border border-black/10 bg-white/70 px-4 py-2 text-sm">
                   <Users className="h-4 w-4 text-stone-700" />
                   <span className="font-medium text-stone-950">{recipe.servings}</span>
-                  <span className="text-stone-600">portions</span>
+                  <span className="text-stone-600">servings</span>
                 </div>
               )}
-              <div className="flex items-center gap-2 rounded-full border border-black/10 bg-white/70 px-4 py-2 text-sm">
-                <Star className="h-4 w-4 fill-amber-400 text-amber-400" />
-                <span className="font-medium text-stone-950">4.8</span>
-              </div>
               <button
-                onClick={() => setIsSaved(!isSaved)}
-                className={`flex items-center gap-2 rounded-full border px-4 py-2 text-sm transition-colors ${
-                  isSaved 
-                    ? 'border-stone-950 bg-stone-950 text-white' 
-                    : 'border-black/10 bg-white/70 text-stone-700 hover:bg-white'
-                }`}
+                onClick={() => {
+                  navigator.clipboard?.writeText(window.location.href)
+                  toast.success('Link copied to clipboard')
+                }}
+                className="flex items-center gap-2 rounded-full border border-black/10 bg-white/70 px-4 py-2 text-sm text-stone-700 hover:bg-white transition-colors"
               >
-                <Bookmark className={`h-4 w-4 ${isSaved ? 'fill-white' : ''}`} />
-                {isSaved ? 'Saved' : 'Save'}
-              </button>
-              <button className="flex items-center gap-2 rounded-full border border-black/10 bg-white/70 px-4 py-2 text-sm text-stone-700 hover:bg-white transition-colors">
                 <Share2 className="h-4 w-4" />
                 Share
               </button>
@@ -254,30 +245,74 @@ export function RecipeDetail() {
 
             {/* Owner Actions */}
             {isOwner && (
-              <div className="flex flex-wrap gap-3 mb-6 pt-6 border-t border-black/10">
-                <button
-                  onClick={() => navigate(`/drafts/${recipe.id}`)}
-                  className="flex items-center gap-2 px-5 py-2.5 bg-stone-950 text-white rounded-full hover:bg-stone-800 text-sm font-medium transition-colors"
-                >
-                  <Edit size={16} />
-                  Edit Recipe
-                </button>
-                {recipe.status === 'published' && (
+              <div className="mb-6 pt-6 border-t border-black/10 space-y-3">
+                <div className="flex flex-wrap gap-3">
                   <button
-                    onClick={unpublish}
-                    className="flex items-center gap-2 px-5 py-2.5 border border-black/10 rounded-full hover:bg-white text-stone-700 text-sm font-medium transition-colors"
+                    onClick={() => navigate(`/drafts/${recipe.id}`)}
+                    className="flex items-center gap-2 px-5 py-2.5 bg-stone-950 text-white rounded-full hover:bg-stone-800 text-sm font-medium transition-colors"
                   >
-                    <EyeOff size={16} />
-                    Unpublish
+                    <Edit size={16} />
+                    Edit recipe
                   </button>
+                  {recipe.status === 'published' && !confirmUnpublish && (
+                    <button
+                      onClick={() => setConfirmUnpublish(true)}
+                      className="flex items-center gap-2 px-5 py-2.5 border border-black/10 rounded-full hover:bg-white text-stone-700 text-sm font-medium transition-colors"
+                    >
+                      <EyeOff size={16} />
+                      Unpublish
+                    </button>
+                  )}
+                  {!confirmDelete && (
+                    <button
+                      onClick={() => setConfirmDelete(true)}
+                      className="flex items-center gap-2 px-5 py-2.5 border border-red-200 bg-red-50 rounded-full hover:bg-red-100 text-red-700 text-sm font-medium transition-colors"
+                    >
+                      <Trash2 size={16} />
+                      Delete recipe
+                    </button>
+                  )}
+                </div>
+
+                {/* Inline unpublish confirmation */}
+                {confirmUnpublish && (
+                  <div className="flex items-center gap-3 rounded-2xl border border-black/10 bg-white/60 px-4 py-3 text-sm">
+                    <span className="text-stone-700 flex-1">Move this recipe back to drafts?</span>
+                    <button
+                      onClick={() => setConfirmUnpublish(false)}
+                      className="rounded-full px-3 py-1.5 text-stone-500 hover:bg-black/5 transition-colors"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      onClick={unpublish}
+                      disabled={actionLoading}
+                      className="rounded-full bg-stone-950 px-3 py-1.5 text-white hover:bg-stone-800 disabled:opacity-50 transition-colors"
+                    >
+                      {actionLoading ? 'Moving…' : 'Yes, unpublish'}
+                    </button>
+                  </div>
                 )}
-                <button
-                  onClick={deleteRecipe}
-                  className="flex items-center gap-2 px-5 py-2.5 border border-red-200 bg-red-50 rounded-full hover:bg-red-100 text-red-700 text-sm font-medium transition-colors"
-                >
-                  <Trash2 size={16} />
-                  Delete Recipe
-                </button>
+
+                {/* Inline delete confirmation */}
+                {confirmDelete && (
+                  <div className="flex items-center gap-3 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm">
+                    <span className="text-red-700 flex-1">This cannot be undone. Delete permanently?</span>
+                    <button
+                      onClick={() => setConfirmDelete(false)}
+                      className="rounded-full px-3 py-1.5 text-stone-500 hover:bg-black/5 transition-colors"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      onClick={deleteRecipe}
+                      disabled={actionLoading}
+                      className="rounded-full bg-red-600 px-3 py-1.5 text-white hover:bg-red-700 disabled:opacity-50 transition-colors"
+                    >
+                      {actionLoading ? 'Deleting…' : 'Yes, delete'}
+                    </button>
+                  </div>
+                )}
               </div>
             )}
 

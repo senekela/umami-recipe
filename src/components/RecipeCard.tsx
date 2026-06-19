@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { motion } from 'framer-motion'
-import { Clock, Users, Star, Bookmark, ChevronDown } from 'lucide-react'
+import { Users, ChevronDown } from 'lucide-react'
 import type { Recipe } from '../lib/types/recipe'
 
 const gradients = [
@@ -30,19 +30,14 @@ function getRecipeAccent(id: number) {
   return accents[id % accents.length]
 }
 
-export function RecipeCard({ recipe }: { recipe: Recipe }) {
+// When bare=true the card renders without its own Link/outer shell — used in
+// MyRecipes where the parent owns the wrapper and navigation.
+export function RecipeCard({ recipe, bare = false }: { recipe: Recipe; bare?: boolean }) {
   const publisherName = recipe.publisher?.nickname?.trim() || 'Umami cook'
   const [isExpanded, setIsExpanded] = useState(false)
 
-  return (
-    <Link to={`/recipes/${recipe.slug}`} className="block group">
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        whileHover={{ y: -4 }}
-        transition={{ duration: 0.2 }}
-        className="overflow-hidden rounded-[1.5rem] sm:rounded-[2rem] border border-black/10 bg-[#fbf7ef]/80 shadow-sm backdrop-blur-xl hover:shadow-xl hover:border-stone-950/20 transition-all"
-      >
+  const inner = (
+    <div className="overflow-hidden">
         {/* Recipe Image or Gradient */}
         {recipe.image_url ? (
           <div className="aspect-video overflow-hidden">
@@ -63,19 +58,10 @@ export function RecipeCard({ recipe }: { recipe: Recipe }) {
 
         {/* Card Content */}
         <div className="p-4 sm:p-5 md:p-6">
-          <div className="flex items-start justify-between gap-2 sm:gap-3 mb-2.5 sm:mb-3">
-            <h3 className="font-display text-lg sm:text-xl font-semibold tracking-tight text-stone-950 line-clamp-2 flex-1 min-w-0">
+          <div className="mb-2.5 sm:mb-3">
+            <h3 className="font-display text-lg sm:text-xl font-semibold tracking-tight text-stone-950 line-clamp-2">
               {recipe.title}
             </h3>
-            <button
-              onClick={(e) => {
-                e.preventDefault()
-              }}
-              className="grid h-8 w-8 sm:h-9 sm:w-9 shrink-0 place-items-center rounded-full border border-black/10 bg-white/55 backdrop-blur transition hover:bg-white hover:border-stone-950"
-              aria-label="Save recipe"
-            >
-              <Bookmark className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-stone-700" />
-            </button>
           </div>
 
           {/* Description */}
@@ -107,10 +93,6 @@ export function RecipeCard({ recipe }: { recipe: Recipe }) {
                 <span className="font-medium">{recipe.servings}</span>
               </div>
             )}
-            <div className="flex items-center gap-1 sm:gap-1.5 rounded-full bg-white/70 px-2.5 sm:px-3 py-1 sm:py-1.5 text-[10px] sm:text-xs text-stone-700 whitespace-nowrap">
-              <Star className="h-3 w-3 sm:h-3.5 sm:w-3.5 fill-amber-400 text-amber-400" />
-              <span className="font-medium">4.8</span>
-            </div>
           </div>
 
           {/* Tags */}
@@ -146,6 +128,21 @@ export function RecipeCard({ recipe }: { recipe: Recipe }) {
             </div>
           </div>
         </div>
+    </div>
+  )
+
+  if (bare) return inner
+
+  return (
+    <Link to={`/recipes/${recipe.slug}`} className="block group">
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        whileHover={{ y: -4 }}
+        transition={{ duration: 0.2 }}
+        className="overflow-hidden rounded-[1.5rem] sm:rounded-[2rem] border border-black/10 bg-[#fbf7ef]/80 shadow-sm backdrop-blur-xl hover:shadow-xl hover:border-stone-950/20 transition-all"
+      >
+        {inner}
       </motion.div>
     </Link>
   )

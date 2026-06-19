@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
+import { toast } from 'sonner'
 import { useDraft } from '../hooks/useDraft'
 import { supabase } from '../lib/supabase'
 import slugify from 'slugify'
@@ -134,40 +135,39 @@ export function DraftEditor() {
 
     if (error) {
       console.error('Failed to publish recipe:', error)
-      alert(`Failed to publish recipe: ${error.message}`)
+      toast.error(`Failed to publish: ${error.message}`)
       return
     }
-    
+
     navigate(`/recipes/${slug}`)
   }
 
   const handleDelete = async () => {
-    const confirmMessage = draft.status === 'published'
-      ? 'Are you sure you want to delete this published recipe? This action cannot be undone.'
-      : 'Are you sure you want to delete this draft? This action cannot be undone.'
-    
-    if (!confirm(confirmMessage)) return
-
-    try {
-      if (draft.image_url) {
-        const imagePath = draft.image_url.split('/').slice(-2).join('/')
-        await supabase.storage
-          .from('recipe-images')
-          .remove([imagePath])
-      }
-
-      const { error } = await supabase
-        .from('recipes')
-        .delete()
-        .eq('id', draft.id)
-
-      if (error) throw error
-      
-      navigate('/me')
-    } catch (err) {
-      console.error('Failed to delete recipe:', err)
-      alert('Failed to delete recipe. Please try again.')
-    }
+    toast(`Delete "${draft.title || 'this recipe'}"?`, {
+      description: 'This cannot be undone.',
+      action: {
+        label: 'Delete',
+        onClick: async () => {
+          try {
+            if (draft.image_url) {
+              const imagePath = draft.image_url.split('/').slice(-2).join('/')
+              await supabase.storage.from('recipe-images').remove([imagePath])
+            }
+            const { error } = await supabase.from('recipes').delete().eq('id', draft.id)
+            if (error) throw error
+            toast.success('Recipe deleted')
+            navigate('/me')
+          } catch (err) {
+            console.error('Failed to delete recipe:', err)
+            toast.error('Failed to delete. Please try again.')
+          }
+        },
+      },
+      cancel: {
+        label: 'Cancel',
+        onClick: () => {},
+      },
+    })
   }
 
   const generateShareLink = async () => {
@@ -571,7 +571,7 @@ export function DraftEditor() {
             <button
               onClick={() => {
                 navigator.clipboard.writeText(`${window.location.origin}/share/${draft.share_token}`)
-                alert('Link copied!')
+                toast.success('Link copied to clipboard')
               }}
               className="w-full bg-tertiary text-white py-2 rounded-lg hover:bg-[#c66647] active:bg-[#b85537] transition-colors"
             >

@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../hooks/useAuth'
 import { Layout } from '../components/Layout'
+import { Card, CardContent } from '../app/components/ui/card'
 import { Camera, Loader2, User } from 'lucide-react'
 import type { Profile } from '../lib/types/profile'
 
@@ -10,7 +11,7 @@ export function Profile() {
   const { user } = useAuth()
   const navigate = useNavigate()
   const fileInputRef = useRef<HTMLInputElement>(null)
-  
+
   const [profile, setProfile] = useState<Profile | null>(null)
   const [nickname, setNickname] = useState('')
   const [loading, setLoading] = useState(true)
@@ -36,7 +37,7 @@ export function Profile() {
         .single()
 
       if (error) throw error
-      
+
       setProfile(data)
       setNickname(data.nickname || '')
     } catch (err) {
@@ -67,7 +68,7 @@ export function Profile() {
         console.error('Supabase update error:', error)
         throw error
       }
-      
+
       if (data) {
         setProfile(data)
       }
@@ -102,31 +103,23 @@ export function Profile() {
 
     try {
       if (profile?.avatar_path) {
-        await supabase.storage
-          .from('avatars')
-          .remove([profile.avatar_path])
+        await supabase.storage.from('avatars').remove([profile.avatar_path])
       }
 
       const fileExt = file.name.split('.').pop()
       const fileName = `${Date.now()}.${fileExt}`
       const filePath = `${user.id}/${fileName}`
 
-      const { error: uploadError } = await supabase.storage
-        .from('avatars')
-        .upload(filePath, file)
-
+      const { error: uploadError } = await supabase.storage.from('avatars').upload(filePath, file)
       if (uploadError) throw uploadError
 
-      const { data: { publicUrl } } = supabase.storage
-        .from('avatars')
-        .getPublicUrl(filePath)
+      const {
+        data: { publicUrl },
+      } = supabase.storage.from('avatars').getPublicUrl(filePath)
 
       const { data: updateData, error: updateError } = await supabase
         .from('profiles')
-        .update({
-          avatar_url: publicUrl,
-          avatar_path: filePath,
-        })
+        .update({ avatar_url: publicUrl, avatar_path: filePath })
         .eq('id', user.id)
         .select()
         .single()
@@ -135,7 +128,7 @@ export function Profile() {
         console.error('Profile update error:', updateError)
         throw updateError
       }
-      
+
       if (updateData) {
         setProfile(updateData)
       }
@@ -157,7 +150,7 @@ export function Profile() {
     return (
       <Layout title="Profile">
         <div className="flex items-center justify-center py-16">
-          <Loader2 className="w-8 h-8 animate-spin text-tertiary" />
+          <Loader2 className="w-8 h-8 animate-spin text-stone-400" />
         </div>
       </Layout>
     )
@@ -166,115 +159,119 @@ export function Profile() {
   return (
     <Layout title="Profile" showBack onBack={() => navigate('/me')}>
       <div className="max-w-2xl mx-auto">
-        <div className="bg-background rounded-none shadow-elevated p-10 md:p-12">
-          {/* Avatar Section */}
-          <div className="flex flex-col items-center mb-10">
-            <div className="relative group">
-              <div className="w-32 h-32 rounded-full overflow-hidden bg-muted/10 flex items-center justify-center">
-                {profile?.avatar_url ? (
-                  <img
-                    src={profile.avatar_url}
-                    alt={nickname || 'Profile'}
-                    className="w-full h-full object-cover"
-                  />
-                ) : (
-                  <User className="w-16 h-16 text-muted-foreground" />
-                )}
-              </div>
-              
-              <button
-                onClick={() => fileInputRef.current?.click()}
-                disabled={uploading}
-                className="absolute bottom-0 right-0 bg-primary text-primary-foreground p-3 rounded-full shadow-elevated hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                aria-label="Upload profile picture"
-              >
-                {uploading ? (
-                  <Loader2 className="w-5 h-5 animate-spin" />
-                ) : (
-                  <Camera className="w-5 h-5" />
-                )}
-              </button>
-              
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept="image/*"
-                onChange={handleAvatarUpload}
-                className="hidden"
-              />
-            </div>
-            
-            <p className="text-sm text-muted-foreground mt-4 text-center font-light">
-              Click the camera icon to upload a new profile picture
-              <br />
-              <span className="text-xs">Max size: 2MB</span>
-            </p>
-          </div>
+        <Card className="rounded-[2rem] border-black/10 bg-[#fbf7ef]/80 shadow-sm backdrop-blur-xl">
+          <CardContent className="p-6 md:p-10">
 
-          {/* Nickname Section */}
-          <form onSubmit={handleSaveNickname} className="space-y-6">
-            <div>
-              <label htmlFor="nickname" className="block text-[11px] font-semibold text-muted-foreground mb-3 uppercase tracking-[1.65px]">
-                Nickname
-              </label>
-              <input
-                id="nickname"
-                type="text"
-                value={nickname}
-                onChange={(e) => setNickname(e.target.value)}
-                placeholder="Enter your nickname"
-                maxLength={50}
-                className="w-full px-4 py-3 border border-border/30 rounded-full focus:ring-2 focus:ring-primary focus:border-primary bg-white text-primary placeholder:text-muted-foreground"
-              />
-              <p className="text-xs text-muted-foreground mt-2 font-light">
-                This is how you'll appear to others
+            {/* Avatar Section */}
+            <div className="flex flex-col items-center mb-8">
+              <div className="relative group">
+                <div className="w-28 h-28 rounded-full overflow-hidden bg-stone-950 flex items-center justify-center ring-4 ring-white/50">
+                  {profile?.avatar_url ? (
+                    <img
+                      src={profile.avatar_url}
+                      alt={nickname || 'Profile'}
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <User className="w-12 h-12 text-white" />
+                  )}
+                </div>
+
+                <button
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={uploading}
+                  className="absolute bottom-0 right-0 grid h-9 w-9 place-items-center rounded-full bg-stone-950 text-white shadow-lg hover:bg-stone-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed border-2 border-white"
+                  aria-label="Upload profile picture"
+                >
+                  {uploading ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <Camera className="w-4 h-4" />
+                  )}
+                </button>
+
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  onChange={handleAvatarUpload}
+                  className="hidden"
+                />
+              </div>
+
+              <p className="text-xs text-stone-400 mt-3 text-center">
+                Click the camera icon to update your photo · Max 2MB
               </p>
             </div>
 
-            {/* Email (read-only) */}
-            <div>
-              <label htmlFor="email" className="block text-[11px] font-semibold text-muted-foreground mb-3 uppercase tracking-[1.65px]">
-                Email
-              </label>
-              <input
-                id="email"
-                type="email"
-                value={user?.email || ''}
-                disabled
-                className="w-full px-4 py-3 border border-border/30 rounded-full bg-muted/5 text-muted-foreground cursor-not-allowed"
-              />
-            </div>
-
-            {/* Messages */}
-            {error && (
-              <div className="p-4 bg-red-50 border border-red-200 rounded-none text-red-700 text-sm">
-                {error}
+            {/* Nickname Section */}
+            <form onSubmit={handleSaveNickname} className="space-y-5">
+              <div>
+                <label htmlFor="nickname" className="block text-xs font-semibold text-stone-500 mb-2 uppercase tracking-[0.1em]">
+                  Nickname
+                </label>
+                <input
+                  id="nickname"
+                  type="text"
+                  value={nickname}
+                  onChange={(e) => setNickname(e.target.value)}
+                  placeholder="Enter your nickname"
+                  maxLength={50}
+                  className="w-full px-4 py-3 border border-black/10 rounded-full bg-white/70 text-stone-950 placeholder:text-stone-400 focus:outline-none focus:border-stone-950 focus:ring-2 focus:ring-stone-950/10 transition"
+                />
+                <p className="text-xs text-stone-400 mt-2">
+                  This is how you'll appear to others
+                </p>
               </div>
-            )}
 
-            {success && (
-              <div className="p-4 bg-green-50 border border-green-200 rounded-none text-green-700 text-sm">
-                {success}
+              {/* Email (read-only) */}
+              <div>
+                <label htmlFor="email" className="block text-xs font-semibold text-stone-500 mb-2 uppercase tracking-[0.1em]">
+                  Email
+                </label>
+                <input
+                  id="email"
+                  type="email"
+                  value={user?.email || ''}
+                  disabled
+                  className="w-full px-4 py-3 border border-black/10 rounded-full bg-stone-100/60 text-stone-400 cursor-not-allowed"
+                />
               </div>
-            )}
 
-            {/* Save Button */}
-            <button
-              type="submit"
-              disabled={saving || nickname === profile?.nickname}
-              className="w-full bg-primary text-primary-foreground py-3 rounded-full font-semibold text-[11px] uppercase tracking-[1.65px] hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {saving ? (
-                <span className="flex items-center justify-center gap-2">
-                  <Loader2 className="w-5 h-5 animate-spin" />
-                  Saving...
-                </span>
-              ) : (
-                'Save Changes'
+              {/* Feedback Messages */}
+              {error && (
+                <div className="flex items-start gap-3 p-4 bg-red-50 border border-red-200/80 rounded-2xl text-red-700 text-sm">
+                  <span className="shrink-0 mt-0.5">⚠</span>
+                  <span>{error}</span>
+                </div>
               )}
-            </button>
-          </form>
-        </div>
+
+              {success && (
+                <div className="flex items-start gap-3 p-4 bg-emerald-50 border border-emerald-200/80 rounded-2xl text-emerald-700 text-sm">
+                  <span className="shrink-0 mt-0.5">✓</span>
+                  <span>{success}</span>
+                </div>
+              )}
+
+              {/* Save Button */}
+              <button
+                type="submit"
+                disabled={saving || nickname === (profile?.nickname ?? '')}
+                className="w-full rounded-full bg-stone-950 text-white py-3 text-sm font-semibold hover:bg-stone-800 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                {saving ? (
+                  <span className="flex items-center justify-center gap-2">
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    Saving…
+                  </span>
+                ) : (
+                  'Save changes'
+                )}
+              </button>
+            </form>
+
+          </CardContent>
+        </Card>
       </div>
     </Layout>
   )

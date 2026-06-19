@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
+import { toast } from 'sonner'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../hooks/useAuth'
 import type { Recipe } from '../lib/types/recipe'
@@ -50,33 +51,32 @@ export function MyRecipes() {
   async function deleteRecipe(recipe: Recipe, e: React.MouseEvent) {
     e.preventDefault()
     e.stopPropagation()
-    
-    const confirmMessage = recipe.status === 'published'
-      ? `Are you sure you want to delete "${recipe.title}"? This action cannot be undone.`
-      : `Are you sure you want to delete the draft "${recipe.title}"? This action cannot be undone.`
-    
-    if (!confirm(confirmMessage)) return
 
-    try {
-      if (recipe.image_url) {
-        const imagePath = recipe.image_url.split('/').slice(-2).join('/')
-        await supabase.storage
-          .from('recipe-images')
-          .remove([imagePath])
-      }
-
-      const { error } = await supabase
-        .from('recipes')
-        .delete()
-        .eq('id', recipe.id)
-
-      if (error) throw error
-      
-      await loadRecipes()
-    } catch (err) {
-      console.error('Failed to delete recipe:', err)
-      alert('Failed to delete recipe. Please try again.')
-    }
+    toast(`Delete "${recipe.title}"?`, {
+      description: 'This cannot be undone.',
+      action: {
+        label: 'Delete',
+        onClick: async () => {
+          try {
+            if (recipe.image_url) {
+              const imagePath = recipe.image_url.split('/').slice(-2).join('/')
+              await supabase.storage.from('recipe-images').remove([imagePath])
+            }
+            const { error } = await supabase.from('recipes').delete().eq('id', recipe.id)
+            if (error) throw error
+            toast.success('Recipe deleted')
+            await loadRecipes()
+          } catch (err) {
+            console.error('Failed to delete recipe:', err)
+            toast.error('Failed to delete. Please try again.')
+          }
+        },
+      },
+      cancel: {
+        label: 'Cancel',
+        onClick: () => {},
+      },
+    })
   }
 
   const stats = {
@@ -95,19 +95,16 @@ export function MyRecipes() {
       <Card className="rounded-[2rem] border-black/10 bg-[#fbf7ef]/80 shadow-sm backdrop-blur-xl mb-6">
         <CardContent className="p-6 md:p-8">
           <div className="flex flex-col sm:flex-row items-start sm:items-center gap-6">
-            <div className="relative">
-              <div className="w-20 h-20 rounded-full overflow-hidden bg-stone-950 flex items-center justify-center flex-shrink-0 ring-4 ring-white/50">
-                {profile?.avatar_url ? (
-                  <img
-                    src={profile.avatar_url}
-                    alt={profile.nickname || 'Profile'}
-                    className="w-full h-full object-cover"
-                  />
-                ) : (
-                  <UserIcon className="w-10 h-10 text-white" />
-                )}
-              </div>
-              <div className="absolute -bottom-1 -right-1 h-6 w-6 rounded-full bg-lime-400 border-2 border-white" />
+            <div className="w-20 h-20 rounded-full overflow-hidden bg-stone-950 flex items-center justify-center flex-shrink-0 ring-4 ring-white/50">
+              {profile?.avatar_url ? (
+                <img
+                  src={profile.avatar_url}
+                  alt={profile.nickname || 'Profile'}
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                <UserIcon className="w-10 h-10 text-white" />
+              )}
             </div>
             
             <div className="flex-1 min-w-0">
@@ -260,35 +257,34 @@ export function MyRecipes() {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: index * 0.05 }}
-                className="relative group"
+                className="flex flex-col overflow-hidden rounded-[1.5rem] sm:rounded-[2rem] border border-black/10 bg-[#fbf7ef]/80 shadow-sm backdrop-blur-xl hover:shadow-xl hover:border-stone-950/20 transition-all"
               >
+                {/* Card — navigates to recipe */}
                 <button
                   onClick={() => navigate(tab === 'published' ? `/recipes/${recipe.slug}` : `/drafts/${recipe.id}`)}
-                  className="text-left w-full"
+                  className="text-left w-full flex-1"
                 >
-                  <RecipeCard recipe={recipe} />
+                  <RecipeCard recipe={recipe} bare />
                 </button>
-                
-                {/* Action Buttons Overlay */}
-                <div className="absolute top-3 right-3 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+
+                {/* Always-visible action bar */}
+                <div className="flex gap-2 border-t border-black/8 px-3 py-2.5">
                   <button
                     onClick={(e) => {
                       e.preventDefault()
-                      e.stopPropagation()
                       navigate(`/drafts/${recipe.id}`)
                     }}
-                    className="flex items-center gap-1.5 px-3 py-2 bg-stone-950 text-white rounded-full hover:bg-stone-800 text-xs font-medium transition-colors shadow-lg"
-                    title="Edit recipe"
+                    className="flex flex-1 items-center justify-center gap-1.5 rounded-full py-2 text-xs font-medium text-stone-600 transition-colors hover:bg-black/5 hover:text-stone-950"
                   >
-                    <Edit size={14} />
+                    <Edit size={13} />
                     Edit
                   </button>
+                  <div className="w-px bg-black/8 self-stretch" />
                   <button
                     onClick={(e) => deleteRecipe(recipe, e)}
-                    className="flex items-center gap-1.5 px-3 py-2 bg-red-600 text-white rounded-full hover:bg-red-700 text-xs font-medium transition-colors shadow-lg"
-                    title="Delete recipe"
+                    className="flex flex-1 items-center justify-center gap-1.5 rounded-full py-2 text-xs font-medium text-red-500 transition-colors hover:bg-red-50 hover:text-red-700"
                   >
-                    <Trash2 size={14} />
+                    <Trash2 size={13} />
                     Delete
                   </button>
                 </div>
