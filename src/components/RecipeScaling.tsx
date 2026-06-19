@@ -153,7 +153,7 @@ export function RecipeScaling({ originalServings, ingredients, onScalingChange }
                 type="number"
                 value={targetServings}
                 onChange={(e) => handleServingsChange(parseInt(e.target.value) || 0)}
-                className="w-full text-center text-2xl font-semibold bg-transparent border-none outline-none text-primary"
+                className="w-full text-center text-2xl font-semibold bg-transparent border-none outline-none text-primary [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                 min="1"
                 max="50"
                 step="1"
@@ -216,7 +216,7 @@ export function RecipeScaling({ originalServings, ingredients, onScalingChange }
                   value={anchorAmount}
                   onChange={(e) => handleAnchorAmountChange(e.target.value)}
                   placeholder="Ex : 250"
-                  className="w-full px-4 py-3 pr-12 rounded-full bg-background border border-border/30 text-primary focus:outline-none focus:ring-2 focus:ring-tertiary/20"
+                  className="w-full px-4 py-3 pr-12 rounded-full bg-background border border-border/30 text-primary focus:outline-none focus:ring-2 focus:ring-tertiary/20 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                   min="0.1"
                   max="99999"
                   step="0.1"
