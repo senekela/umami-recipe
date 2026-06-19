@@ -3,13 +3,12 @@ import { useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   Search,
-  Users,
-  Bookmark,
   Sparkles,
   X,
   ArrowRight,
   Clock,
   Leaf,
+  Users,
 } from 'lucide-react'
 import { useRecipes } from '../hooks/useRecipes'
 import { useAuth } from '../hooks/useAuth'
@@ -44,7 +43,6 @@ export function Home() {
   const { profile } = useAuth()
   const [query, setQuery] = useState('')
   const [activeFilter, setActiveFilter] = useState('All')
-  const [saved, setSaved] = useState<number[]>([])
   const [isSearchFocused, setIsSearchFocused] = useState(false)
   const [selectedRecipe, setSelectedRecipe] = useState<Recipe | null>(null)
   const [quickFilterActive, setQuickFilterActive] = useState<'fast' | 'vegetarian' | null>(null)
@@ -98,10 +96,6 @@ export function Home() {
 
     return Array.from(terms).slice(0, 6)
   }, [normalizedQuery, recipes])
-
-  const toggleSaved = (id: number) => {
-    setSaved((current) => (current.includes(id) ? current.filter((item) => item !== id) : [...current, id]))
-  }
 
   const clearSearch = () => {
     setQuery('')
@@ -158,13 +152,6 @@ export function Home() {
                     <MiniPill>Featured tonight</MiniPill>
                     {featuredRecipe.tags[0] && <MiniPill>{featuredRecipe.tags[0]}</MiniPill>}
                   </div>
-                  <button
-                    onClick={() => toggleSaved(featuredRecipe.id)}
-                    className="grid h-11 w-11 place-items-center rounded-full border border-white/15 bg-white/10 backdrop-blur transition hover:bg-white/20"
-                    aria-label="Save recipe"
-                  >
-                    <Bookmark className={`h-5 w-5 ${saved.includes(featuredRecipe.id) ? 'fill-white' : ''}`} />
-                  </button>
                 </div>
 
                 <div className="max-w-2xl">
@@ -320,7 +307,19 @@ export function Home() {
 
             <motion.div layout className={`grid gap-2.5 sm:gap-3 ${isSearching ? 'lg:grid-cols-2' : 'grid-cols-1'}`}>
               <AnimatePresence mode="popLayout">
-                {loading ? (
+                {error ? (
+                  <motion.div
+                    key="fetch-error"
+                    layout
+                    initial={{ opacity: 0, y: 8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: 8 }}
+                    className="rounded-[1.25rem] sm:rounded-[1.75rem] border border-red-200/60 bg-red-50/80 p-4 sm:p-6 text-center"
+                  >
+                    <p className="text-sm font-medium text-red-700">Couldn't load recipes</p>
+                    <p className="mt-1 text-xs text-red-500">Check your connection and try refreshing the page.</p>
+                  </motion.div>
+                ) : loading ? (
                   [1, 2, 3].map((i) => (
                     <motion.div
                       key={`skeleton-${i}`}
@@ -380,9 +379,8 @@ export function Home() {
                         </div>
                       )}
                       <div className="min-w-0 flex-1 self-start">
-                        <div className="flex items-start justify-between gap-1.5 sm:gap-2">
-                          <h3 className="line-clamp-1 text-sm sm:text-base font-semibold tracking-tight">{recipe.title}</h3>
-                          {saved.includes(recipe.id) ? <Bookmark className="h-3.5 w-3.5 sm:h-4 sm:w-4 shrink-0 fill-current" /> : null}
+                        <div className="flex items-start gap-1.5 sm:gap-2">
+                          <h3 className="line-clamp-1 flex-1 text-sm sm:text-base font-semibold tracking-tight">{recipe.title}</h3>
                         </div>
                         {recipe.description && (
                           <p className={`mt-0.5 text-xs sm:text-sm line-clamp-1 ${selectedRecipe?.id === recipe.id ? 'text-white/65' : 'text-stone-500'}`}>
